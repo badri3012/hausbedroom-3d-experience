@@ -39,7 +39,7 @@ export function Scene({ state, onUpdateState }: SceneProps) {
     <div className="w-full h-full relative select-none bg-[#181816] overflow-hidden">
       <Canvas
         shadows
-        camera={{ position: [2.6, 1.45, 4.4], fov: 38 }}
+        camera={{ position: [0.75, 1.25, 4.35], fov: 38 }}
         dpr={[1, 2]}
         gl={{
           antialias: true,

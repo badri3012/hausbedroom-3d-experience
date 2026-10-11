@@ -2,7 +2,7 @@
 
 import React from "react";
 import { WardrobeInteractionState } from "@/types/wardrobe";
-import { SlidersHorizontal, ArrowLeftRight, Check, Eye } from "lucide-react";
+import { SlidersHorizontal, ArrowLeftRight, Check, Eye, Camera } from "lucide-react";
 
 interface DoorControlsProps {
   state: WardrobeInteractionState;
@@ -10,38 +10,53 @@ interface DoorControlsProps {
 }
 
 export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
-  const isLeftOpen = state.leftDoorOpen || state.bothDoorsOpen;
-  const isRightOpen = state.rightDoorOpen || state.bothDoorsOpen;
-  const areBothOpen = isLeftOpen && isRightOpen;
+  const isLeftSlid = state.leftDoorOpen || state.bothDoorsOpen;
+  const isRightSlid = state.rightDoorOpen || state.bothDoorsOpen;
+  const areBothSlid = isLeftSlid && isRightSlid;
 
   const handleToggleLeft = () => {
     onUpdateState({
-      leftDoorOpen: !isLeftOpen,
+      leftDoorOpen: !isLeftSlid,
       bothDoorsOpen: false,
     });
   };
 
   const handleToggleRight = () => {
     onUpdateState({
-      rightDoorOpen: !isRightOpen,
+      rightDoorOpen: !isRightSlid,
       bothDoorsOpen: false,
     });
   };
 
   const handleToggleBoth = () => {
-    if (areBothOpen) {
+    if (areBothSlid || isLeftSlid || isRightSlid) {
+      // Park both doors at outer sides (Photographed Reference 3 state)
       onUpdateState({
         leftDoorOpen: false,
         rightDoorOpen: false,
         bothDoorsOpen: false,
       });
     } else {
+      // Slide both doors to center
       onUpdateState({
         leftDoorOpen: true,
         rightDoorOpen: true,
         bothDoorsOpen: true,
       });
     }
+  };
+
+  const handleSetReferenceState = () => {
+    onUpdateState({
+      leftDoorOpen: false,
+      rightDoorOpen: false,
+      bothDoorsOpen: false,
+      topDrawerOpen: false,
+      bottomDrawerOpen: false,
+      drawersOpen: false,
+      cameraPreset: "front",
+      interiorViewActive: false,
+    });
   };
 
   return (
@@ -56,25 +71,36 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
         </span>
       </div>
 
-      {/* Main Dual Button */}
+      {/* Quick Action: Client Reference Photo State */}
+      <button
+        onClick={handleSetReferenceState}
+        className="w-full py-2 px-3 rounded-lg bg-[#A88C69]/10 hover:bg-[#A88C69]/20 border border-[#A88C69]/30 text-[#A88C69] text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all"
+      >
+        <Camera className="w-3.5 h-3.5" />
+        Match Reference Photo State (Front View + Center Exposed)
+      </button>
+
+      {/* Master Toggle Button */}
       <button
         onClick={handleToggleBoth}
         className={`w-full py-3 px-4 rounded-xl font-medium text-[13px] flex items-center justify-center gap-2 border transition-all ${
-          areBothOpen
+          areBothSlid
             ? "bg-[#242424] text-white border-[#242424] shadow-md"
             : "bg-white text-[#242424] border-[#A88C69] hover:bg-[#F9F7F4] shadow-sm"
         }`}
       >
         <SlidersHorizontal className="w-4 h-4 text-[#A88C69]" />
-        {areBothOpen ? "Close All Sliding Doors" : "Slide Open Both Doors"}
+        {areBothSlid || isLeftSlid || isRightSlid
+          ? "Park Both Doors (Showcase Center)"
+          : "Slide Doors to Center"}
       </button>
 
-      {/* Independent Door Buttons */}
+      {/* Independent Door Control Buttons */}
       <div className="grid grid-cols-2 gap-2.5">
         <button
           onClick={handleToggleLeft}
           className={`p-3 rounded-xl border text-left transition-all ${
-            isLeftOpen
+            isLeftSlid
               ? "bg-white border-[#A88C69] shadow-sm ring-1 ring-[#A88C69]/20"
               : "bg-white/60 hover:bg-white border-[#E6E1D8]"
           }`}
@@ -83,17 +109,17 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
             Left Panel
           </div>
           <div className="text-[13px] font-medium text-[#242424] mt-0.5">
-            {isLeftOpen ? "Slid Left (Open)" : "Closed (Center)"}
+            {isLeftSlid ? "Slid to Center" : "Parked Left (Open)"}
           </div>
           <div className="text-[10px] text-[#A88C69] mt-1">
-            Click to {isLeftOpen ? "close" : "slide left"}
+            Click to {isLeftSlid ? "park at left" : "slide to center"}
           </div>
         </button>
 
         <button
           onClick={handleToggleRight}
           className={`p-3 rounded-xl border text-left transition-all ${
-            isRightOpen
+            isRightSlid
               ? "bg-white border-[#A88C69] shadow-sm ring-1 ring-[#A88C69]/20"
               : "bg-white/60 hover:bg-white border-[#E6E1D8]"
           }`}
@@ -102,10 +128,10 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
             Right Panel
           </div>
           <div className="text-[13px] font-medium text-[#242424] mt-0.5">
-            {isRightOpen ? "Slid Right (Open)" : "Closed (Center)"}
+            {isRightSlid ? "Slid to Center" : "Parked Right (Open)"}
           </div>
           <div className="text-[10px] text-[#A88C69] mt-1">
-            Click to {isRightOpen ? "close" : "slide right"}
+            Click to {isRightSlid ? "park at right" : "slide to center"}
           </div>
         </button>
       </div>
@@ -117,19 +143,19 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
           Direct 3D Click Interaction
         </div>
         <p className="leading-relaxed">
-          Hover and click on any door panel directly in the 3D view to slide it along its horizontal track.
+          Click either door directly in the 3D canvas to slide it along its bypass track with soft-close deceleration.
         </p>
       </div>
 
-      {/* Engineering Highlights */}
+      {/* Engineering Specifications */}
       <div className="space-y-1.5 pt-1">
         <div className="text-[11px] font-mono uppercase text-[#77736D]">
           Track Engineering Specifications
         </div>
         <ul className="text-[11px] text-[#77736D] space-y-1 list-disc list-inside">
-          <li>Concealed dual ceiling track with German dampeners</li>
-          <li>Flush floor guide with 3mm low-profile threshold</li>
-          <li>Whisper-damped soft-close decelerators at track terminals</li>
+          <li>Concealed dual ceiling track with German soft-close dampeners</li>
+          <li>Independent parallel tracks with 40mm bypass clearance (no geometric collision)</li>
+          <li>Milky acid-etched frosted satin privacy glass with alabaster border bands</li>
         </ul>
       </div>
     </div>

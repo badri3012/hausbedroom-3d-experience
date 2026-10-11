@@ -19,6 +19,7 @@ interface DrawerProps {
   woodTexture?: THREE.CanvasTexture | null;
   frontType?: "wood" | "smoked-glass";
   handleStyle?: "horizontal-bar" | "recessed-lip";
+  handleColor?: string;
   maxSlide?: number;
 }
 
@@ -36,6 +37,7 @@ export function Drawer({
   woodTexture,
   frontType = "wood",
   handleStyle = "horizontal-bar",
+  handleColor,
   maxSlide = 0.38,
 }: DrawerProps) {
   const groupRef = useRef<THREE.Group>(null);
@@ -61,13 +63,15 @@ export function Drawer({
   }, []);
 
   const pbrHandleMat = useMemo(() => {
+    // Brushed metallic silver handle as seen in Reference Image 3
+    const resolvedColor = handleColor || (frontType === "wood" ? "#D4D8DC" : frameMaterial.color);
     return new THREE.MeshStandardMaterial({
-      color: frameMaterial.color,
-      roughness: frameMaterial.roughness,
-      metalness: frameMaterial.metalness,
-      envMapIntensity: 1.1,
+      color: resolvedColor,
+      roughness: 0.25,
+      metalness: 0.90,
+      envMapIntensity: 1.2,
     });
-  }, [frameMaterial]);
+  }, [handleColor, frontType, frameMaterial]);
 
   const pbrGlassFrontMat = useMemo(() => {
     return new THREE.MeshPhysicalMaterial({

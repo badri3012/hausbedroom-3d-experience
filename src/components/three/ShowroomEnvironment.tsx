@@ -43,6 +43,14 @@ export function ShowroomEnvironment() {
     });
   }, []);
 
+  const switchPlateMat = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: "#FAF8F5",
+      roughness: 0.35,
+      metalness: 0.05,
+    });
+  }, []);
+
   return (
     <group>
       {/* 1. WARM PARQUET HARDWOOD FLOOR (Reference Image 3) */}
@@ -60,13 +68,35 @@ export function ShowroomEnvironment() {
         <planeGeometry args={[14, 5.0]} />
       </mesh>
 
-      {/* 3. BASEBOARD SKIRTING TRIM */}
+      {/* 3. ALCOVE RETURN WALLS FRAMING THE WARDROBE (Reference Image 3) */}
+      {/* Left alcove drywall return pilaster */}
+      <mesh position={[-1.75, 1.25, 0.05]} receiveShadow material={wallMat}>
+        <boxGeometry args={[0.46, 2.50, 0.72]} />
+      </mesh>
+      {/* Right alcove drywall return pilaster */}
+      <mesh position={[1.75, 1.25, 0.05]} receiveShadow material={wallMat}>
+        <boxGeometry args={[0.46, 2.50, 0.72]} />
+      </mesh>
+
+      {/* 4. LIGHT SWITCH ON LEFT WALL (Authentic Reference 3 Detail) */}
+      <group position={[-1.52, 1.30, 0.28]}>
+        {/* Switch faceplate */}
+        <mesh material={switchPlateMat}>
+          <boxGeometry args={[0.012, 0.12, 0.08]} />
+        </mesh>
+        {/* Rocker button */}
+        <mesh position={[0.006, 0, 0]} material={switchPlateMat}>
+          <boxGeometry args={[0.004, 0.04, 0.03]} />
+        </mesh>
+      </group>
+
+      {/* 5. BASEBOARD SKIRTING TRIM */}
       <mesh position={[0, 0.045, -0.315]} material={skirtingMat}>
         <boxGeometry args={[14, 0.09, 0.02]} />
       </mesh>
 
-      {/* 4. CEILING SOFFIT / RECESS */}
-      <mesh position={[0, 2.7, 0.4]} rotation={[Math.PI / 2, 0, 0]} material={ceilingMat}>
+      {/* 6. CEILING SOFFIT / RECESS */}
+      <mesh position={[0, 2.65, 0.4]} rotation={[Math.PI / 2, 0, 0]} material={ceilingMat}>
         <planeGeometry args={[14, 10]} />
       </mesh>
     </group>

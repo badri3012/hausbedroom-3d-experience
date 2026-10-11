@@ -8,17 +8,18 @@ import { DoorPanelOption, FrameFinishOption } from "@/types/wardrobe";
 interface SlidingDoorProps {
   id: string;
   name: string;
-  width: number;       // in meters, e.g. 1.52
+  width: number;       // in meters, e.g. 1.14
   height: number;      // in meters, e.g. 2.34
-  thickness?: number;  // in meters, e.g. 0.032
-  closedX: number;     // initial closed X position
-  openOffset: number;  // horizontal slide distance when opened (e.g. -1.35 or +1.35)
-  trackZ: number;      // track depth offset (e.g. 0.31 or 0.27)
+  thickness?: number;  // in meters, e.g. 0.028
+  closedX: number;     // initial parked X position (-0.93 or +0.93)
+  openOffset: number;  // slide delta to center (+0.93 or -0.93)
+  trackZ: number;      // track depth offset (0.316 or 0.276)
   isOpen: boolean;
   onToggle: () => void;
   frameMaterial: FrameFinishOption;
   doorPanelMaterial: DoorPanelOption;
-  hasBands?: boolean;  // whether to render Reference 3 top & bottom bands
+  hasBands?: boolean;  // Reference 3 top & bottom opaque bands
+  handleSide?: "left" | "right";
 }
 
 export function SlidingDoor({
@@ -26,7 +27,7 @@ export function SlidingDoor({
   name,
   width,
   height,
-  thickness = 0.032,
+  thickness = 0.028,
   closedX,
   openOffset,
   trackZ,
@@ -35,6 +36,7 @@ export function SlidingDoor({
   frameMaterial,
   doorPanelMaterial,
   hasBands = true,
+  handleSide = "right",
 }: SlidingDoorProps) {
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
@@ -115,9 +117,11 @@ export function SlidingDoor({
   });
 
   // Slim contemporary aluminium profile dimensions matching Reference 3
-  const frameBorderWidth = 0.028; // Slim 28mm stile profile
-  const topBandHeight = hasBands ? 0.38 : 0;
-  const bottomBandHeight = hasBands ? 0.38 : 0;
+  const frameBorderWidth = 0.026; // Slim 26mm profile
+  // Exact vertical ratios from Reference 3 photograph:
+  // Top band: 0.42m (~18%), Center frosted: 1.46m (~62%), Bottom band: 0.42m (~18%)
+  const topBandHeight = hasBands ? 0.42 : 0;
+  const bottomBandHeight = hasBands ? 0.42 : 0;
   const glassHeight = height - topBandHeight - bottomBandHeight - frameBorderWidth * 2 - 0.024;
 
   return (
@@ -158,6 +162,7 @@ export function SlidingDoor({
       {/* ========================================================= */}
       {/* 1. SLIM ARCHITECTURAL BLACK ALUMINIUM DOOR PROFILE        */}
       {/* ========================================================= */}
+
       {/* Top frame horizontal rail */}
       <mesh
         position={[0, height / 2 - frameBorderWidth / 2, 0]}
@@ -191,16 +196,18 @@ export function SlidingDoor({
         <boxGeometry args={[frameBorderWidth, height, thickness]} />
       </mesh>
 
-      {/* 2. RECESSED VERTICAL HANDLE GRIP PROFILE */}
+      {/* 2. RECESSED VERTICAL HANDLE GRIP PROFILE (ON INNER STILE) */}
       <mesh
         position={[
-          openOffset > 0 ? -width / 2 + 0.045 : width / 2 - 0.045,
+          handleSide === "right"
+            ? width / 2 - frameBorderWidth / 2
+            : -width / 2 + frameBorderWidth / 2,
           0,
-          thickness / 2 + 0.004,
+          thickness / 2 + 0.003,
         ]}
         material={pbrFrameMat}
       >
-        <boxGeometry args={[0.014, 0.45, 0.01]} />
+        <boxGeometry args={[0.012, 0.42, 0.008]} />
       </mesh>
 
       {/* 3. DOOR INFILL PANELS (Reference Image 3 Proportion) */}

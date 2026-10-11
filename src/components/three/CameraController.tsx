@@ -16,23 +16,23 @@ interface CameraControllerProps {
 // Camera presets with comfortable luxury framing margins for 3.0m - 3.6m models
 const PRESET_CONFIGS: Record<CameraPreset, { pos: [number, number, number]; target: [number, number, number] }> = {
   default: {
-    pos: [2.6, 1.45, 4.4],
-    target: [0, 1.18, 0],
+    pos: [0.75, 1.25, 4.35],
+    target: [0, 1.20, 0],
   },
   front: {
-    pos: [0, 1.20, 4.6],
+    pos: [0, 1.22, 4.35],
     target: [0, 1.20, 0],
   },
   interior: {
-    pos: [0, 0.95, 2.3],
-    target: [0, 0.85, 0],
+    pos: [0, 0.95, 2.15],
+    target: [0, 0.75, 0],
   },
   side: {
-    pos: [3.8, 1.40, 3.4],
-    target: [0, 1.18, 0],
+    pos: [3.4, 1.35, 3.2],
+    target: [0, 1.20, 0],
   },
   top: {
-    pos: [1.2, 3.4, 4.2],
+    pos: [0.8, 3.4, 3.8],
     target: [0, 1.10, 0],
   },
 };
