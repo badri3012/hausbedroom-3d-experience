@@ -92,15 +92,17 @@ export function Drawer({
     });
   }, []);
 
-  // Smooth slide animation
+  // Smooth slide animation (lerp factor clamped so low frame rates can never
+  // overshoot / diverge; snaps exactly onto the target when settled)
   useFrame((_, delta) => {
     if (!groupRef.current) return;
     const targetZ = isOpen ? position[2] + maxSlide : position[2];
-    groupRef.current.position.z = THREE.MathUtils.lerp(
+    const next = THREE.MathUtils.lerp(
       groupRef.current.position.z,
       targetZ,
-      delta * 7
+      Math.min(1, delta * 7)
     );
+    groupRef.current.position.z = Math.abs(next - targetZ) < 0.0005 ? targetZ : next;
   });
 
   const wallThickness = 0.016;

@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { SlidingDoor } from "./SlidingDoor";
 import { Drawer } from "./Drawer";
 import { GarmentHanger, FoldedTowels, RolledTowel, StorageBox } from "./GarmentHanger";
+import { computeDoorTravel, CONTEMPORARY_DOOR_SPEC } from "@/lib/door-kinematics";
 import {
   WoodFinishOption,
   FrameFinishOption,
@@ -98,21 +99,33 @@ export function ContemporarySlidingWardrobe({
   const sideBayW = totalW / 2 - centerPartitionX; // 1.08m
 
   // Door dimensions matching Reference 3:
-  // In the photograph, Left Door covers Left Bay, Right Door covers Right Bay,
-  // leaving the Central Bay completely exposed.
-  // Each door is ~1.14m wide (covers side bay + 60mm overlap with center partition).
-  const doorW = 1.14;
+  // Left Door covers the Left Bay, Right Door covers the Right Bay, leaving the
+  // Central Bay exposed. 1.10 m leaves the door's inner stile at +/-0.40 m, i.e.
+  // just outside the 0.78 m drawer span (+/-0.39 m), so drawers never hit a door.
+  const doorW = CONTEMPORARY_DOOR_SPEC.doorWidth; // 1.10 m
   const doorH = 2.34;
 
-  // Parked X positions (Photographed Reference 3 default state):
-  const leftDoorParkedX = -totalW / 2 + doorW / 2; // -1.50 + 0.57 = -0.93m
-  const rightDoorParkedX = totalW / 2 - doorW / 2; // +1.50 - 0.57 = +0.93m
+  // Parked X positions (Photographed Reference 3 default state) = outer-parked,
+  // each door flush against its own side panel.
+  const leftDoorParkedX = CONTEMPORARY_DOOR_SPEC.restLeftX; // -0.95 m
+  const rightDoorParkedX = CONTEMPORARY_DOOR_SPEC.restRightX; // +0.95 m
 
-  // Sliding offset when slid to center:
-  // Left Door slides from -0.93m to 0.0m (slide delta = +0.93m)
-  // Right Door slides from +0.93m to 0.0m (slide delta = -0.93m)
-  const leftSlideDelta = Math.abs(leftDoorParkedX);
-  const rightSlideDelta = -Math.abs(rightDoorParkedX);
+  // GEOMETRY VALIDATION: how far can each door travel OUTWARD from the reference
+  // position? Computed from the real dimensions (see src/lib/door-kinematics.ts).
+  // For the 3.0 m reference opening this is 0 mm (doors already touch the side
+  // panels), so outward travel is NOT faked: we fall back to the closest
+  // physically plausible movement - a limited inward slide that can never reach
+  // the centre, never stacks doors on one side and never leaves the track.
+  const travel = useMemo(() => computeDoorTravel(CONTEMPORARY_DOOR_SPEC), []);
+  const leftSlideDelta = travel.left.slideDelta;
+  const rightSlideDelta = travel.right.slideDelta;
+
+  // Interlock: drawers pull out through the doors' plane, so doors always return
+  // to their reference positions while any drawer is open.
+  const anyDrawerOpen =
+    state.topDrawerOpen || state.bottomDrawerOpen || state.drawersOpen;
+  const leftDoorSlid = (state.leftDoorOpen || state.bothDoorsOpen) && !anyDrawerOpen;
+  const rightDoorSlid = (state.rightDoorOpen || state.bothDoorsOpen) && !anyDrawerOpen;
 
   // Parallel bypass tracks:
   // Front Track at Z = +0.316m (Left Door)
@@ -293,9 +306,15 @@ export function ContemporarySlidingWardrobe({
         depth={0.48}
         position={[0, -0.15, 0]}
         isOpen={state.topDrawerOpen || state.drawersOpen}
-        onToggle={() =>
-          onUpdateState({ topDrawerOpen: !(state.topDrawerOpen || state.drawersOpen) })
-        }
+        onToggle={() => {
+          const opening = !(state.topDrawerOpen || state.drawersOpen);
+          onUpdateState({
+            topDrawerOpen: opening,
+            ...(opening
+              ? { leftDoorOpen: false, rightDoorOpen: false, bothDoorsOpen: false }
+              : {}),
+          });
+        }}
         woodMaterial={woodMaterial}
         frameMaterial={frameMaterial}
         woodTexture={woodTexture}
@@ -312,9 +331,15 @@ export function ContemporarySlidingWardrobe({
         depth={0.48}
         position={[0, -0.39, 0]}
         isOpen={state.bottomDrawerOpen || state.drawersOpen}
-        onToggle={() =>
-          onUpdateState({ bottomDrawerOpen: !(state.bottomDrawerOpen || state.drawersOpen) })
-        }
+        onToggle={() => {
+          const opening = !(state.bottomDrawerOpen || state.drawersOpen);
+          onUpdateState({
+            bottomDrawerOpen: opening,
+            ...(opening
+              ? { leftDoorOpen: false, rightDoorOpen: false, bothDoorsOpen: false }
+              : {}),
+          });
+        }}
         woodMaterial={woodMaterial}
         frameMaterial={frameMaterial}
         woodTexture={woodTexture}
@@ -422,7 +447,7 @@ export function ContemporarySlidingWardrobe({
       {/* Right Door is on the Rear Track (Z = +0.276)              */}
       {/* ========================================================= */}
 
-      {/* Left Sliding Door (Front Track) */}
+      {/* Left Sliding Door (Front Track) - independent, own-side travel limits */}
       <SlidingDoor
         id="sliding.door.left"
         name="Left Sliding Door Panel"
@@ -430,12 +455,19 @@ export function ContemporarySlidingWardrobe({
         height={doorH}
         closedX={leftDoorParkedX}
         openOffset={leftSlideDelta}
+        minX={travel.left.minX}
+        maxX={travel.left.maxX}
         trackZ={frontTrackZ}
-        isOpen={state.leftDoorOpen || state.bothDoorsOpen}
+        isOpen={leftDoorSlid}
         onToggle={() =>
           onUpdateState({
-            leftDoorOpen: !(state.leftDoorOpen || state.bothDoorsOpen),
+            leftDoorOpen: !leftDoorSlid,
+            rightDoorOpen: state.rightDoorOpen || state.bothDoorsOpen,
             bothDoorsOpen: false,
+            // drawers must be pushed in before a door may cover them
+            topDrawerOpen: false,
+            bottomDrawerOpen: false,
+            drawersOpen: false,
           })
         }
         frameMaterial={frameMaterial}
@@ -444,7 +476,7 @@ export function ContemporarySlidingWardrobe({
         handleSide="right"
       />
 
-      {/* Right Sliding Door (Rear Track) */}
+      {/* Right Sliding Door (Rear Track) - independent, own-side travel limits */}
       <SlidingDoor
         id="sliding.door.right"
         name="Right Sliding Door Panel"
@@ -452,12 +484,18 @@ export function ContemporarySlidingWardrobe({
         height={doorH}
         closedX={rightDoorParkedX}
         openOffset={rightSlideDelta}
+        minX={travel.right.minX}
+        maxX={travel.right.maxX}
         trackZ={rearTrackZ}
-        isOpen={state.rightDoorOpen || state.bothDoorsOpen}
+        isOpen={rightDoorSlid}
         onToggle={() =>
           onUpdateState({
-            rightDoorOpen: !(state.rightDoorOpen || state.bothDoorsOpen),
+            rightDoorOpen: !rightDoorSlid,
+            leftDoorOpen: state.leftDoorOpen || state.bothDoorsOpen,
             bothDoorsOpen: false,
+            topDrawerOpen: false,
+            bottomDrawerOpen: false,
+            drawersOpen: false,
           })
         }
         frameMaterial={frameMaterial}

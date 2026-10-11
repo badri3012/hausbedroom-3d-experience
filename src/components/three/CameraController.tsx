@@ -16,7 +16,7 @@ interface CameraControllerProps {
 // Camera presets with comfortable luxury framing margins for 3.0m - 3.6m models
 const PRESET_CONFIGS: Record<CameraPreset, { pos: [number, number, number]; target: [number, number, number] }> = {
   default: {
-    pos: [0.75, 1.25, 4.35],
+    pos: [0.3, 1.25, 4.35],
     target: [0, 1.20, 0],
   },
   front: {
@@ -24,8 +24,8 @@ const PRESET_CONFIGS: Record<CameraPreset, { pos: [number, number, number]; targ
     target: [0, 1.20, 0],
   },
   interior: {
-    pos: [0, 0.95, 2.15],
-    target: [0, 0.75, 0],
+    pos: [0, 1.18, 3.7],
+    target: [0, 1.18, 0],
   },
   side: {
     pos: [3.4, 1.35, 3.2],
@@ -43,19 +43,40 @@ export function CameraController({
   autoRotate,
 }: CameraControllerProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
-  const { camera } = useThree();
+  const { camera, size } = useThree();
 
   const targetPosRef = useRef(new THREE.Vector3(...PRESET_CONFIGS.default.pos));
   const targetLookAtRef = useRef(new THREE.Vector3(...PRESET_CONFIGS.default.target));
   const isTransitioningRef = useRef(false);
 
+  // Bucket the aspect ratio so tiny resizes do not restart the camera transition
+  const aspectBucket = Math.round((size.width / Math.max(1, size.height)) * 10) / 10;
+
   useEffect(() => {
     const activePreset = interiorViewActive ? "interior" : preset;
     const config = PRESET_CONFIGS[activePreset] || PRESET_CONFIGS.default;
-    targetPosRef.current.set(...config.pos);
-    targetLookAtRef.current.set(...config.target);
+    const target = new THREE.Vector3(...config.target);
+    const pos = new THREE.Vector3(...config.pos);
+
+    // Fit the whole wardrobe (3.0 m wide, 2.4 m tall + margins) for this aspect
+    // ratio by pulling back along the preset's own view direction only if needed.
+    if (activePreset !== "interior") {
+      const fov = (camera as THREE.PerspectiveCamera).fov ?? 38;
+      const tanHalf = Math.tan(THREE.MathUtils.degToRad(fov / 2));
+      const FIT_HALF_W = 1.95; // 1.5 m half-width + ~0.45 m margin
+      const FIT_HALF_H = 1.45; // 1.2 m half-height + ~0.25 m margin (floor + header)
+      const dH = FIT_HALF_W / (tanHalf * aspectBucket);
+      const dV = FIT_HALF_H / tanHalf;
+      const fitDist = Math.max(dH, dV) + 0.35; // + door-plane / perspective allowance
+      const offset = pos.clone().sub(target);
+      const scale = Math.max(1, fitDist / offset.length());
+      pos.copy(target).add(offset.multiplyScalar(scale));
+    }
+
+    targetPosRef.current.copy(pos);
+    targetLookAtRef.current.copy(target);
     isTransitioningRef.current = true;
-  }, [preset, interiorViewActive]);
+  }, [preset, interiorViewActive, aspectBucket, camera]);
 
   useFrame((_, delta) => {
     if (!controlsRef.current) return;
@@ -86,7 +107,7 @@ export function CameraController({
       autoRotate={autoRotate}
       autoRotateSpeed={1.0}
       minDistance={1.5}
-      maxDistance={7.5}
+      maxDistance={12}
       minPolarAngle={0.15}
       maxPolarAngle={Math.PI / 2 - 0.04} // Clamped right above floor level
       enableDamping

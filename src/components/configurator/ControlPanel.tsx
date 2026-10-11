@@ -29,16 +29,22 @@ export function ControlPanel({
 
   const handleToggleDoors = () => {
     if (isDoorsOpen) {
+      // Return both doors to their reference-photo positions
       onUpdateState({
         leftDoorOpen: false,
         rightDoorOpen: false,
         bothDoorsOpen: false,
       });
     } else {
+      // Slide each door independently within its own track limits;
+      // drawers must be closed first (they pull out through the door plane)
       onUpdateState({
         leftDoorOpen: true,
         rightDoorOpen: true,
         bothDoorsOpen: true,
+        drawersOpen: false,
+        topDrawerOpen: false,
+        bottomDrawerOpen: false,
       });
     }
   };
@@ -51,10 +57,14 @@ export function ControlPanel({
         bottomDrawerOpen: false,
       });
     } else {
+      // Doors return to reference positions so they can't block the drawers
       onUpdateState({
         drawersOpen: true,
         topDrawerOpen: true,
         bottomDrawerOpen: true,
+        leftDoorOpen: false,
+        rightDoorOpen: false,
+        bothDoorsOpen: false,
       });
     }
   };
@@ -63,9 +73,10 @@ export function ControlPanel({
     const nextState = !state.interiorViewActive;
     onUpdateState({
       interiorViewActive: nextState,
-      leftDoorOpen: nextState ? true : state.leftDoorOpen,
-      rightDoorOpen: nextState ? true : state.rightDoorOpen,
-      bothDoorsOpen: nextState ? true : state.bothDoorsOpen,
+      // The centre storage is already exposed at the reference door positions
+      ...(nextState
+        ? { leftDoorOpen: false, rightDoorOpen: false, bothDoorsOpen: false }
+        : {}),
       cameraPreset: nextState ? "interior" : "default",
     });
   };
@@ -191,7 +202,7 @@ export function ControlPanel({
             }`}
           >
             <ArrowLeftRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A88C69]" />
-            <span>{isDoorsOpen ? "Park Doors" : "Slide Doors"}</span>
+            <span>{isDoorsOpen ? "Reset Doors" : "Slide Doors"}</span>
           </button>
 
           {/* Toggle Drawers */}

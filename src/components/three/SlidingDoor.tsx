@@ -20,6 +20,8 @@ interface SlidingDoorProps {
   doorPanelMaterial: DoorPanelOption;
   hasBands?: boolean;  // Reference 3 top & bottom opaque bands
   handleSide?: "left" | "right";
+  minX?: number;       // hard left travel limit of the door centre
+  maxX?: number;       // hard right travel limit of the door centre
 }
 
 export function SlidingDoor({
@@ -37,6 +39,8 @@ export function SlidingDoor({
   doorPanelMaterial,
   hasBands = true,
   handleSide = "right",
+  minX,
+  maxX,
 }: SlidingDoorProps) {
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
@@ -105,15 +109,22 @@ export function SlidingDoor({
     });
   }, [frameMaterial]);
 
-  // Smooth sliding animation along horizontal track
+  // Smooth, reversible sliding along the horizontal track, hard-clamped to the
+  // physically available track range (never beyond side panels / centre gap).
   useFrame((_, delta) => {
     if (!groupRef.current) return;
-    const targetX = isOpen ? closedX + openOffset : closedX;
-    groupRef.current.position.x = THREE.MathUtils.lerp(
+    const rawTarget = isOpen ? closedX + openOffset : closedX;
+    const lo = minX ?? Math.min(closedX, closedX + openOffset);
+    const hi = maxX ?? Math.max(closedX, closedX + openOffset);
+    const targetX = Math.min(hi, Math.max(lo, rawTarget));
+    const next = THREE.MathUtils.lerp(
       groupRef.current.position.x,
       targetX,
-      delta * 6.5
+      Math.min(1, delta * 6.5)
     );
+    // Snap when visually settled so the door returns EXACTLY to the reference position
+    groupRef.current.position.x =
+      Math.abs(next - targetX) < 0.0005 ? targetX : Math.min(hi, Math.max(lo, next));
   });
 
   // Slim contemporary aluminium profile dimensions matching Reference 3

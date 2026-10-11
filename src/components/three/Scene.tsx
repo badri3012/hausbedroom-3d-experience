@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { ContactShadows, Environment, Html } from "@react-three/drei";
+import { ContactShadows, Environment } from "@react-three/drei";
 import * as THREE from "three";
 import { ShowroomEnvironment } from "./ShowroomEnvironment";
 import { Lighting } from "./Lighting";
@@ -15,19 +15,6 @@ import { WARDROBE_VARIANTS } from "@/lib/wardrobe-config";
 interface SceneProps {
   state: WardrobeInteractionState;
   onUpdateState: (updates: Partial<WardrobeInteractionState>) => void;
-}
-
-function WebGLLoader() {
-  return (
-    <Html center>
-      <div className="flex flex-col items-center justify-center p-5 rounded-2xl bg-[#1C1C19]/90 text-[#F6F3EE] backdrop-blur-xl border border-white/10 shadow-2xl">
-        <div className="w-8 h-8 border-2 border-[#A88C69] border-t-transparent rounded-full animate-spin mb-2.5" />
-        <span className="text-[10px] font-mono tracking-widest uppercase text-[#D8D0C5]">
-          Loading 3D Studio Wardrobe...
-        </span>
-      </div>
-    </Html>
-  );
 }
 
 export function Scene({ state, onUpdateState }: SceneProps) {
@@ -49,7 +36,7 @@ export function Scene({ state, onUpdateState }: SceneProps) {
           toneMappingExposure: 1.05,
         }}
       >
-        <Suspense fallback={<WebGLLoader />}>
+        <Suspense fallback={null}>
           {/* Studio & Ceiling Lighting Rig */}
           <Lighting
             lightingMode={state.lightingMode}

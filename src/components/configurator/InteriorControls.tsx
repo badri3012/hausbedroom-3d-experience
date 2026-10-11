@@ -35,6 +35,9 @@ export function InteriorControls({
         drawersOpen: true,
         topDrawerOpen: true,
         bottomDrawerOpen: true,
+        leftDoorOpen: false,
+        rightDoorOpen: false,
+        bothDoorsOpen: false,
       });
     }
   };
@@ -43,9 +46,9 @@ export function InteriorControls({
     const nextState = !state.interiorViewActive;
     onUpdateState({
       interiorViewActive: nextState,
-      leftDoorOpen: nextState ? true : state.leftDoorOpen,
-      rightDoorOpen: nextState ? true : state.rightDoorOpen,
-      bothDoorsOpen: nextState ? true : state.bothDoorsOpen,
+      ...(nextState
+        ? { leftDoorOpen: false, rightDoorOpen: false, bothDoorsOpen: false }
+        : {}),
       cameraPreset: nextState ? "interior" : "default",
     });
   };
@@ -65,7 +68,7 @@ export function InteriorControls({
         </div>
 
         <p className="text-[11px] text-[#77736D] leading-relaxed">
-          Automatically opens exterior sliding doors and guides the 3D camera into the central storage cubbies and interior organizers.
+          Returns both sliding doors to their reference positions (centre storage fully exposed) and guides the 3D camera into the central storage cubbies and drawers.
         </p>
 
         <button
@@ -109,6 +112,9 @@ export function InteriorControls({
               onUpdateState({
                 topDrawerOpen: !state.topDrawerOpen,
                 drawersOpen: false,
+                ...(!state.topDrawerOpen
+                  ? { leftDoorOpen: false, rightDoorOpen: false, bothDoorsOpen: false }
+                  : {}),
               })
             }
             className={`p-2.5 rounded-lg border text-left text-[11px] transition-all ${
@@ -128,6 +134,9 @@ export function InteriorControls({
               onUpdateState({
                 bottomDrawerOpen: !state.bottomDrawerOpen,
                 drawersOpen: false,
+                ...(!state.bottomDrawerOpen
+                  ? { leftDoorOpen: false, rightDoorOpen: false, bothDoorsOpen: false }
+                  : {}),
               })
             }
             className={`p-2.5 rounded-lg border text-left text-[11px] transition-all ${
