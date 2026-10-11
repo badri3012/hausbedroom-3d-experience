@@ -202,7 +202,7 @@ export function ControlPanel({
             }`}
           >
             <ArrowLeftRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A88C69]" />
-            <span>{isDoorsOpen ? "Reset Doors" : "Slide Doors"}</span>
+            <span>{isDoorsOpen ? "Return Doors" : "Slide Doors"}</span>
           </button>
 
           {/* Toggle Drawers */}

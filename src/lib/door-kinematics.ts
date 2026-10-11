@@ -1,133 +1,123 @@
 /**
- * Sliding-door travel validation for the Contemporary Sliding Wardrobe.
+ * Outward-sliding door kinematics for the Contemporary Sliding Wardrobe.
  *
  * All values in metres, X axis, wardrobe centre = 0.
  * Pure functions only (no three.js / React) so they can be tested in Node.
+ *
+ * Mechanical Invariants:
+ * 1. Left door moves strictly in the negative X direction (toward the LEFT).
+ * 2. Right door moves strictly in the positive X direction (toward the RIGHT).
+ * 3. Both doors have independent movement paths.
+ * 4. Never animate both doors toward the centre.
+ * 5. Never stack both doors on the same side.
+ * 6. Never reverse the intended movement direction.
+ * 7. Doors must not intersect the cabinet structure.
+ * 8. Sliding movement respects the available tracks.
+ * 9. Reference position matches the photographed layout (outer-parked, centre exposed).
+ * 10. Reference position is the MAXIMUM INWARD position allowed for each door.
  */
 
 export interface DoorTrackSpec {
-  /** Left end of the track / inside face of the left side panel */
+  /** Left end of the track / mechanical bumper limit */
   openingLeftX: number;
-  /** Right end of the track / inside face of the right side panel */
+  /** Right end of the track / mechanical bumper limit */
   openingRightX: number;
   doorWidth: number;
   /** Reference-photograph resting centre X of the left door (outer-parked) */
   restLeftX: number;
   /** Reference-photograph resting centre X of the right door (outer-parked) */
   restRightX: number;
-  /** Doors must always leave at least this clear gap at the centre (never meet) */
-  minCentreGap: number;
-  /** Largest slide we are willing to offer in the "inward" fallback */
-  maxInwardTravel: number;
-  /** Smallest outward travel that counts as a real, usable movement */
-  minUsefulTravel?: number;
+  /** Outward slide stroke (metres) */
+  outwardTravelDistance: number;
 }
 
 export interface SingleDoorTravel {
   restX: number;
-  /** Free track length OUTWARD (towards own side panel) from the rest position */
+  openX: number;
+  /** Free track length OUTWARD from the rest position */
   outwardAvailable: number;
-  /** Free track length INWARD (towards centre) before the centre gap is violated */
-  inwardAvailable: number;
-  /** Signed X delta applied when the door is "slid" (negative = left) */
+  /** Signed X delta applied when the door is "slid" (negative = left, positive = right) */
   slideDelta: number;
-  /** Hard X limits for the door's centre */
+  /** Hard X limits for the door's centre (reference position is the absolute inward limit) */
   minX: number;
   maxX: number;
-  direction: "outward" | "inward-limited" | "none";
+  direction: "outward";
 }
 
 export interface DoorTravelReport {
   outwardTravelPossible: boolean;
-  mode: "outward" | "inward-limited";
+  mode: "outward-only";
   left: SingleDoorTravel;
   right: SingleDoorTravel;
+  centreGapAtRest: number;
   centreGapAtFullTravel: number;
   messages: string[];
 }
 
 export function computeDoorTravel(spec: DoorTrackSpec): DoorTravelReport {
   const half = spec.doorWidth / 2;
-  const minUseful = spec.minUsefulTravel ?? 0.05;
   const messages: string[] = [];
 
   // --- Left door -------------------------------------------------------
-  const leftOuterEdge = spec.restLeftX - half;
-  const leftInnerEdge = spec.restLeftX + half;
-  const leftOutward = Math.max(0, leftOuterEdge - spec.openingLeftX);
-  const leftInward = Math.max(0, -spec.minCentreGap / 2 - leftInnerEdge);
+  // At rest: outer stile = restLeftX - half, inner stile = restLeftX + half
+  const leftOuterAtRest = spec.restLeftX - half;
+  const leftOutwardAvailable = Math.max(0, leftOuterAtRest - spec.openingLeftX);
+  const leftStroke = Math.min(spec.outwardTravelDistance, leftOutwardAvailable);
+
+  // Left door moves in negative X direction (toward the left)
+  const leftSlideDelta = -leftStroke;
+  const leftOpenX = spec.restLeftX + leftSlideDelta;
+
+  const left: SingleDoorTravel = {
+    restX: spec.restLeftX,
+    openX: leftOpenX,
+    outwardAvailable: leftOutwardAvailable,
+    slideDelta: leftSlideDelta,
+    minX: leftOpenX, // full outward open limit
+    maxX: spec.restLeftX, // reference position is the absolute maximum inward limit
+    direction: "outward",
+  };
 
   // --- Right door ------------------------------------------------------
-  const rightOuterEdge = spec.restRightX + half;
-  const rightInnerEdge = spec.restRightX - half;
-  const rightOutward = Math.max(0, spec.openingRightX - rightOuterEdge);
-  const rightInward = Math.max(0, rightInnerEdge - spec.minCentreGap / 2);
+  // At rest: outer stile = restRightX + half, inner stile = restRightX - half
+  const rightOuterAtRest = spec.restRightX + half;
+  const rightOutwardAvailable = Math.max(0, spec.openingRightX - rightOuterAtRest);
+  const rightStroke = Math.min(spec.outwardTravelDistance, rightOutwardAvailable);
 
-  const outwardPossible = leftOutward >= minUseful && rightOutward >= minUseful;
+  // Right door moves in positive X direction (toward the right)
+  const rightSlideDelta = +rightStroke;
+  const rightOpenX = spec.restRightX + rightSlideDelta;
 
-  let left: SingleDoorTravel;
-  let right: SingleDoorTravel;
+  const right: SingleDoorTravel = {
+    restX: spec.restRightX,
+    openX: rightOpenX,
+    outwardAvailable: rightOutwardAvailable,
+    slideDelta: rightSlideDelta,
+    minX: spec.restRightX, // reference position is the absolute maximum inward limit
+    maxX: rightOpenX, // full outward open limit
+    direction: "outward",
+  };
 
-  if (outwardPossible) {
-    messages.push(
-      `Outward travel available: left ${(leftOutward * 1000).toFixed(0)} mm, right ${(rightOutward * 1000).toFixed(0)} mm.`
-    );
-    left = {
-      restX: spec.restLeftX,
-      outwardAvailable: leftOutward,
-      inwardAvailable: leftInward,
-      slideDelta: -leftOutward,
-      minX: spec.restLeftX - leftOutward,
-      maxX: spec.restLeftX + Math.min(leftInward, spec.maxInwardTravel),
-      direction: "outward",
-    };
-    right = {
-      restX: spec.restRightX,
-      outwardAvailable: rightOutward,
-      inwardAvailable: rightInward,
-      slideDelta: rightOutward,
-      minX: spec.restRightX - Math.min(rightInward, spec.maxInwardTravel),
-      maxX: spec.restRightX + rightOutward,
-      direction: "outward",
-    };
-  } else {
-    messages.push(
-      `Outward travel NOT possible: left door has ${(leftOutward * 1000).toFixed(0)} mm and right door has ${(rightOutward * 1000).toFixed(0)} mm of free track beyond the reference position (doors already sit flush against the side panels).`
-    );
-    const lIn = Math.min(leftInward, spec.maxInwardTravel);
-    const rIn = Math.min(rightInward, spec.maxInwardTravel);
-    messages.push(
-      `Closest physically plausible movement: each door slides only inward by up to ${(Math.min(lIn, rIn) * 1000).toFixed(0)} mm and never closer than ${(spec.minCentreGap * 1000).toFixed(0)} mm to the other door.`
-    );
-    left = {
-      restX: spec.restLeftX,
-      outwardAvailable: leftOutward,
-      inwardAvailable: leftInward,
-      slideDelta: lIn,
-      minX: spec.restLeftX - leftOutward, // == rest (no outward room)
-      maxX: spec.restLeftX + lIn,
-      direction: lIn > 0 ? "inward-limited" : "none",
-    };
-    right = {
-      restX: spec.restRightX,
-      outwardAvailable: rightOutward,
-      inwardAvailable: rightInward,
-      slideDelta: -rIn,
-      minX: spec.restRightX - rIn,
-      maxX: spec.restRightX + rightOutward, // == rest
-      direction: rIn > 0 ? "inward-limited" : "none",
-    };
-  }
+  const gapAtRest = spec.restRightX - half - (spec.restLeftX + half);
+  const gapAtFull = right.openX - half - (left.openX + half);
 
-  const leftInnerAtFull = left.restX + left.slideDelta + half;
-  const rightInnerAtFull = right.restX + right.slideDelta - half;
+  messages.push(
+    `Outward sliding kinematics active: Left door moves LEFT (${(leftStroke * 1000).toFixed(0)} mm, negative X), Right door moves RIGHT (${(rightStroke * 1000).toFixed(0)} mm, positive X).`
+  );
+  messages.push(
+    `Reference positions (X = ${spec.restLeftX.toFixed(2)} m and ${spec.restRightX.toFixed(2)} m) are the strict maximum inward boundaries.`
+  );
+  messages.push(
+    `Central storage gap: ${(gapAtRest * 1000).toFixed(0)} mm at rest, widening to ${(gapAtFull * 1000).toFixed(0)} mm when doors open outward.`
+  );
 
   return {
-    outwardTravelPossible: outwardPossible,
-    mode: outwardPossible ? "outward" : "inward-limited",
+    outwardTravelPossible: leftStroke > 0 && rightStroke > 0,
+    mode: "outward-only",
     left,
     right,
-    centreGapAtFullTravel: rightInnerAtFull - leftInnerAtFull,
+    centreGapAtRest: gapAtRest,
+    centreGapAtFullTravel: gapAtFull,
     messages,
   };
 }
@@ -143,12 +133,14 @@ export function clampDoorX(x: number, travel: SingleDoorTravel): number {
  */
 const CW_TOTAL_W = 3.0;
 const CW_DOOR_W = 1.10;
+const CW_OUTWARD_STROKE = 0.25; // 250mm outward sliding stroke
+const CW_TRACK_EXTENSION = 0.25; // Track rails extend to +/-1.75m to support outward travel
+
 export const CONTEMPORARY_DOOR_SPEC: DoorTrackSpec = {
-  openingLeftX: -CW_TOTAL_W / 2,
-  openingRightX: CW_TOTAL_W / 2,
+  openingLeftX: -CW_TOTAL_W / 2 - CW_TRACK_EXTENSION, // -1.75m
+  openingRightX: CW_TOTAL_W / 2 + CW_TRACK_EXTENSION, // +1.75m
   doorWidth: CW_DOOR_W,
-  restLeftX: -CW_TOTAL_W / 2 + CW_DOOR_W / 2,
-  restRightX: CW_TOTAL_W / 2 - CW_DOOR_W / 2,
-  minCentreGap: 0.3,
-  maxInwardTravel: 0.25,
+  restLeftX: -CW_TOTAL_W / 2 + CW_DOOR_W / 2, // -0.95m
+  restRightX: CW_TOTAL_W / 2 - CW_DOOR_W / 2, // +0.95m
+  outwardTravelDistance: CW_OUTWARD_STROKE,
 };

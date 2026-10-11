@@ -69,17 +69,17 @@ export function ShowroomEnvironment() {
       </mesh>
 
       {/* 3. ALCOVE RETURN WALLS FRAMING THE WARDROBE (Reference Image 3) */}
-      {/* Left alcove drywall return pilaster */}
-      <mesh position={[-1.75, 1.25, 0.05]} receiveShadow material={wallMat}>
+      {/* Left alcove drywall return pilaster with clean outward travel clearance */}
+      <mesh position={[-2.05, 1.25, 0.05]} receiveShadow material={wallMat}>
         <boxGeometry args={[0.46, 2.50, 0.72]} />
       </mesh>
-      {/* Right alcove drywall return pilaster */}
-      <mesh position={[1.75, 1.25, 0.05]} receiveShadow material={wallMat}>
+      {/* Right alcove drywall return pilaster with clean outward travel clearance */}
+      <mesh position={[2.05, 1.25, 0.05]} receiveShadow material={wallMat}>
         <boxGeometry args={[0.46, 2.50, 0.72]} />
       </mesh>
 
       {/* 4. LIGHT SWITCH ON LEFT WALL (Authentic Reference 3 Detail) */}
-      <group position={[-1.52, 1.30, 0.28]}>
+      <group position={[-1.82, 1.30, 0.28]}>
         {/* Switch faceplate */}
         <mesh material={switchPlateMat}>
           <boxGeometry args={[0.012, 0.12, 0.08]} />

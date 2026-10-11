@@ -30,7 +30,6 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
       leftDoorOpen: !isLeftSlid,
       rightDoorOpen: isRightSlid,
       bothDoorsOpen: false,
-      ...(!isLeftSlid ? NO_DRAWERS : {}),
     });
   };
 
@@ -39,7 +38,6 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
       rightDoorOpen: !isRightSlid,
       leftDoorOpen: isLeftSlid,
       bothDoorsOpen: false,
-      ...(!isRightSlid ? NO_DRAWERS : {}),
     });
   };
 
@@ -56,7 +54,6 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
       leftDoorOpen: true,
       rightDoorOpen: true,
       bothDoorsOpen: true,
-      ...NO_DRAWERS,
     });
   };
 
@@ -65,7 +62,6 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
       leftDoorOpen: false,
       rightDoorOpen: false,
       bothDoorsOpen: false,
-      ...NO_DRAWERS,
       cameraPreset: "front",
       interiorViewActive: false,
     });
@@ -79,7 +75,7 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
           Sliding Door Operation
         </label>
         <span className="text-[11px] text-[#A88C69] font-mono">
-          Dual-Track Bypass
+          Outward-Only Bypass
         </span>
       </div>
 
@@ -92,24 +88,21 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
         Match Reference Photo (Doors Outer, Centre Exposed)
       </button>
 
-      {/* Geometry validation notice */}
-      {!travel.outwardTravelPossible && (
-        <div className="p-3 bg-[#FFF8EA] rounded-xl border border-[#E9D5A8] text-[11px] text-[#6B5A36] space-y-1">
-          <div className="font-medium flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 text-[#A88C69]" />
-            Travel limitation (demo dimensions)
-          </div>
-          <p className="leading-relaxed">
-            In the reference layout both doors already sit flush against their
-            side panels, so there is 0&nbsp;mm of outward track to slide into.
-            Each door therefore moves independently inward only, up to{" "}
-            {slideMm}&nbsp;mm, and the two doors always keep at least {gapMm}&nbsp;mm
-            apart — they never meet at the centre and never stack on one side.
-          </p>
+      {/* Outward Kinematics Status Box */}
+      <div className="p-3 bg-[#FAF8F5] rounded-xl border border-[#E8E2D8] text-[11px] text-[#6B5A36] space-y-1.5">
+        <div className="font-semibold text-[#242424] flex items-center gap-1.5">
+          <Info className="w-3.5 h-3.5 text-[#A88C69]" />
+          Outward-Only Sliding Mechanism
         </div>
-      )}
+        <p className="leading-relaxed text-[#5C5852]">
+          • <strong>Left Door:</strong> Slides horizontally toward the <strong>LEFT</strong> (negative X).<br />
+          • <strong>Right Door:</strong> Slides horizontally toward the <strong>RIGHT</strong> (positive X).<br />
+          • <strong>Central Storage:</strong> Remains permanently fixed, accessible, and unblocked.<br />
+          • <strong>Reference Position:</strong> Strict maximum inward boundary (doors never cross centreline or meet at centre).
+        </p>
+      </div>
 
-      {/* Master Toggle Button */}
+      {/* Master Toggle Button: Slide Doors / Return Doors */}
       <button
         onClick={anySlid ? handleResetDoors : handleSlideBoth}
         className={`w-full py-3 px-4 rounded-xl font-medium text-[13px] flex items-center justify-center gap-2 border transition-all ${
@@ -119,7 +112,7 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
         }`}
       >
         <SlidersHorizontal className="w-4 h-4 text-[#A88C69]" />
-        {anySlid ? "Return Doors to Reference Position" : "Slide Both Doors (Independent)"}
+        {anySlid ? "Return Doors" : "Slide Doors"}
       </button>
 
       {/* Independent Door Control Buttons */}
@@ -136,10 +129,10 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
             Left Door
           </div>
           <div className="text-[13px] font-medium text-[#242424] mt-0.5">
-            {isLeftSlid ? `Slid ${slideMm} mm` : "Reference (Left)"}
+            {isLeftSlid ? `Slid Left ${slideMm} mm` : "Reference (Left)"}
           </div>
           <div className="text-[10px] text-[#A88C69] mt-1">
-            Click to {isLeftSlid ? "return to left" : "slide along track"}
+            Click to {isLeftSlid ? "return inward" : "slide left (outward)"}
           </div>
         </button>
 
@@ -155,10 +148,10 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
             Right Door
           </div>
           <div className="text-[13px] font-medium text-[#242424] mt-0.5">
-            {isRightSlid ? `Slid ${slideMm} mm` : "Reference (Right)"}
+            {isRightSlid ? `Slid Right ${slideMm} mm` : "Reference (Right)"}
           </div>
           <div className="text-[10px] text-[#A88C69] mt-1">
-            Click to {isRightSlid ? "return to right" : "slide along track"}
+            Click to {isRightSlid ? "return inward" : "slide right (outward)"}
           </div>
         </button>
       </div>
@@ -170,8 +163,7 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
           Direct 3D Click Interaction
         </div>
         <p className="leading-relaxed">
-          Click either door in the 3D view to slide it along its own track. Opening a drawer
-          returns the doors to their reference positions first.
+          Click either door in the 3D viewport to slide it outward along its track. Click again to return it to the reference position.
         </p>
       </div>
 
@@ -182,7 +174,7 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
         </div>
         <ul className="text-[11px] text-[#77736D] space-y-1 list-disc list-inside">
           <li>Independent parallel tracks, 40mm bypass clearance (no door-to-door collision)</li>
-          <li>Hard travel limits: doors cannot leave the track or touch the side panels</li>
+          <li>Continuous 3.50m guide rails with mechanical end stops at ±1.75m</li>
           <li>Milky acid-etched frosted satin privacy glass with alabaster border bands</li>
         </ul>
       </div>

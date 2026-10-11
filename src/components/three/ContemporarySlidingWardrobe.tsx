@@ -107,25 +107,24 @@ export function ContemporarySlidingWardrobe({
 
   // Parked X positions (Photographed Reference 3 default state) = outer-parked,
   // each door flush against its own side panel.
+  // Parked X positions (Photographed Reference 3 default state) = outer-parked over side bays,
+  // each door covering its side bay and leaving the central tower exposed.
   const leftDoorParkedX = CONTEMPORARY_DOOR_SPEC.restLeftX; // -0.95 m
   const rightDoorParkedX = CONTEMPORARY_DOOR_SPEC.restRightX; // +0.95 m
 
-  // GEOMETRY VALIDATION: how far can each door travel OUTWARD from the reference
-  // position? Computed from the real dimensions (see src/lib/door-kinematics.ts).
-  // For the 3.0 m reference opening this is 0 mm (doors already touch the side
-  // panels), so outward travel is NOT faked: we fall back to the closest
-  // physically plausible movement - a limited inward slide that can never reach
-  // the centre, never stacks doors on one side and never leaves the track.
+  // OUTWARD-ONLY SLIDING KINEMATICS (Rule 1 & 2):
+  // Left door slides strictly towards the LEFT (-250mm, negative X direction).
+  // Right door slides strictly towards the RIGHT (+250mm, positive X direction).
+  // Reference position is the strict MAXIMUM INWARD position allowed.
   const travel = useMemo(() => computeDoorTravel(CONTEMPORARY_DOOR_SPEC), []);
   const leftSlideDelta = travel.left.slideDelta;
   const rightSlideDelta = travel.right.slideDelta;
 
-  // Interlock: drawers pull out through the doors' plane, so doors always return
-  // to their reference positions while any drawer is open.
-  const anyDrawerOpen =
-    state.topDrawerOpen || state.bottomDrawerOpen || state.drawersOpen;
-  const leftDoorSlid = (state.leftDoorOpen || state.bothDoorsOpen) && !anyDrawerOpen;
-  const rightDoorSlid = (state.rightDoorOpen || state.bothDoorsOpen) && !anyDrawerOpen;
+  const leftDoorSlid = state.leftDoorOpen || state.bothDoorsOpen;
+  const rightDoorSlid = state.rightDoorOpen || state.bothDoorsOpen;
+
+  // Extended architectural track rail length (3.50m) supporting outward stroke to +/-1.75m
+  const trackLength = CONTEMPORARY_DOOR_SPEC.openingRightX - CONTEMPORARY_DOOR_SPEC.openingLeftX; // 3.50m
 
   // Parallel bypass tracks:
   // Front Track at Z = +0.316m (Left Door)
@@ -186,37 +185,38 @@ export function ContemporarySlidingWardrobe({
 
       {/* Architectural Outer Frame Trim (Crisp Black Aluminium Border as in Ref 3) */}
       <mesh position={[0, totalH / 2 - 0.014, totalD / 2 + 0.012]} material={pbrFrameMat}>
-        <boxGeometry args={[totalW + 0.04, 0.028, 0.04]} />
+        <boxGeometry args={[trackLength + 0.04, 0.028, 0.04]} />
       </mesh>
       <mesh position={[0, -totalH / 2 + 0.014, totalD / 2 + 0.012]} material={pbrFrameMat}>
-        <boxGeometry args={[totalW + 0.04, 0.028, 0.04]} />
+        <boxGeometry args={[trackLength + 0.04, 0.028, 0.04]} />
       </mesh>
-      <mesh position={[-totalW / 2 - 0.014, 0, totalD / 2 + 0.012]} material={pbrFrameMat}>
+      {/* Track End-Cap Bumpers at +/-1.764m */}
+      <mesh position={[-trackLength / 2 - 0.014, 0, totalD / 2 + 0.012]} material={pbrFrameMat}>
         <boxGeometry args={[0.028, totalH + 0.04, 0.04]} />
       </mesh>
-      <mesh position={[totalW / 2 + 0.014, 0, totalD / 2 + 0.012]} material={pbrFrameMat}>
+      <mesh position={[trackLength / 2 + 0.014, 0, totalD / 2 + 0.012]} material={pbrFrameMat}>
         <boxGeometry args={[0.028, totalH + 0.04, 0.04]} />
       </mesh>
 
-      {/* Proper Dual Top Sliding Track Profile with Bypass Channels */}
+      {/* Proper Dual Top Sliding Track Profile with Bypass Channels across full track */}
       <group position={[0, totalH / 2 - 0.028, totalD / 2 - 0.005]}>
         {/* Track header casing */}
         <mesh material={pbrFrameMat}>
-          <boxGeometry args={[totalW - 0.04, 0.024, 0.095]} />
+          <boxGeometry args={[trackLength, 0.024, 0.095]} />
         </mesh>
         {/* Front track channel groove */}
         <mesh position={[0, -0.013, 0.021]} material={pbrFrameMat}>
-          <boxGeometry args={[totalW - 0.04, 0.006, 0.014]} />
+          <boxGeometry args={[trackLength, 0.006, 0.014]} />
         </mesh>
         {/* Rear track channel groove */}
         <mesh position={[0, -0.013, -0.019]} material={pbrFrameMat}>
-          <boxGeometry args={[totalW - 0.04, 0.006, 0.014]} />
+          <boxGeometry args={[trackLength, 0.006, 0.014]} />
         </mesh>
       </group>
 
       {/* Dual Bottom Floor Track Profile */}
       <mesh position={[0, -totalH / 2 + 0.018, totalD / 2 - 0.005]} material={pbrFrameMat}>
-        <boxGeometry args={[totalW - 0.04, 0.014, 0.095]} />
+        <boxGeometry args={[trackLength, 0.014, 0.095]} />
       </mesh>
 
       {/* ========================================================= */}
@@ -464,10 +464,6 @@ export function ContemporarySlidingWardrobe({
             leftDoorOpen: !leftDoorSlid,
             rightDoorOpen: state.rightDoorOpen || state.bothDoorsOpen,
             bothDoorsOpen: false,
-            // drawers must be pushed in before a door may cover them
-            topDrawerOpen: false,
-            bottomDrawerOpen: false,
-            drawersOpen: false,
           })
         }
         frameMaterial={frameMaterial}
@@ -476,7 +472,7 @@ export function ContemporarySlidingWardrobe({
         handleSide="right"
       />
 
-      {/* Right Sliding Door (Rear Track) - independent, own-side travel limits */}
+      {/* Right Sliding Door (Rear Track) - independent, outward-only travel limits */}
       <SlidingDoor
         id="sliding.door.right"
         name="Right Sliding Door Panel"
@@ -493,9 +489,6 @@ export function ContemporarySlidingWardrobe({
             rightDoorOpen: !rightDoorSlid,
             leftDoorOpen: state.leftDoorOpen || state.bothDoorsOpen,
             bothDoorsOpen: false,
-            topDrawerOpen: false,
-            bottomDrawerOpen: false,
-            drawersOpen: false,
           })
         }
         frameMaterial={frameMaterial}
