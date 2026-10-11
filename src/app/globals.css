@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-ivory: #F6F3EE;
+    --text-charcoal: #242421;
+    --soft-stone: #D8D0C5;
+    --muted-taupe: #A79B8C;
+    --dark-espresso: #42372F;
+    --accent-gold: #C5A059;
+    --accent-bronze: #9E7B3B;
+    --card-bg: #FFFFFF;
+    --surface-warm: #EFEBE4;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+body {
+  background-color: var(--bg-ivory);
+  color: var(--text-charcoal);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-serif-editorial {
+  font-family: var(--font-serif), Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F6F3EE;
+}
+::-webkit-scrollbar-thumb {
+  background: #A79B8C;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #42372F;
+}
+
+/* Glassmorphism subtle effects */
+.glass-panel {
+  background: rgba(246, 243, 238, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.dark-glass-panel {
+  background: rgba(36, 36, 33, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
