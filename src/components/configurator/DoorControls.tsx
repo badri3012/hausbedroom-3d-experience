@@ -67,6 +67,124 @@ export function DoorControls({ state, onUpdateState }: DoorControlsProps) {
     });
   };
 
+  // =========================================================================
+  // VARIANT 1: FULL MODULAR BUILT-IN WARDROBE (Reference 1)
+  // Single large grey sliding screen on the LEFT, 4 open bays on the RIGHT
+  // =========================================================================
+  if (state.activeVariant === "full-modular") {
+    const isPanelSlid = state.leftDoorOpen || state.bothDoorsOpen;
+
+    const handleTogglePanel = () => {
+      onUpdateState({
+        leftDoorOpen: !isPanelSlid,
+        bothDoorsOpen: false,
+      });
+    };
+
+    const handleResetRef = () => {
+      onUpdateState({
+        leftDoorOpen: false,
+        bothDoorsOpen: false,
+        cameraPreset: "front",
+        interiorViewActive: false,
+      });
+    };
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-mono uppercase tracking-widest text-[#77736D] flex items-center gap-1.5">
+            <ArrowLeftRight className="w-3.5 h-3.5 text-[#A88C69]" />
+            Sliding Screen Operation
+          </label>
+          <span className="text-[11px] text-[#A88C69] font-mono">
+            Reference 1 Screen
+          </span>
+        </div>
+
+        {/* Quick Action: Match Reference Photo */}
+        <button
+          onClick={handleResetRef}
+          className="w-full py-2 px-3 rounded-lg bg-[#A88C69]/10 hover:bg-[#A88C69]/20 border border-[#A88C69]/30 text-[#A88C69] text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all"
+        >
+          <Camera className="w-3.5 h-3.5" />
+          Match Reference Photo (Panel on Left, 4 Bays Open)
+        </button>
+
+        {/* Reference 1 Composition Details */}
+        <div className="p-3 bg-[#FAF8F5] rounded-xl border border-[#E8E2D8] text-[11px] text-[#6B5A36] space-y-1.5">
+          <div className="font-semibold text-[#242424] flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-[#A88C69]" />
+            Reference 1 Layout Structure
+          </div>
+          <p className="leading-relaxed text-[#5C5852]">
+            • <strong>Left Side:</strong> Large grey sliding panel with dark aluminium framing and multiple horizontal subdivisions.<br />
+            • <strong>Right Side:</strong> Four (4) open vertical wardrobe bays with metallic vertical upright posts.<br />
+            • <strong>Default Presentation:</strong> Sliding panel parked on the left; all 4 bays fully visible and accessible.
+          </p>
+        </div>
+
+        {/* Master Toggle Button: Slide / Return Panel */}
+        <button
+          onClick={handleTogglePanel}
+          className={`w-full py-3 px-4 rounded-xl font-medium text-[13px] flex items-center justify-center gap-2 border transition-all ${
+            isPanelSlid
+              ? "bg-[#242424] text-white border-[#242424] shadow-md"
+              : "bg-white text-[#242424] border-[#A88C69] hover:bg-[#F9F7F4] shadow-sm"
+          }`}
+        >
+          <SlidersHorizontal className="w-4 h-4 text-[#A88C69]" />
+          {isPanelSlid ? "Return Panel to Left Position" : "Slide Panel to Right"}
+        </button>
+
+        {/* Direct 3D Click Hint */}
+        <div className="p-3 bg-white/70 rounded-xl border border-[#E6E1D8] text-[11px] text-[#77736D] space-y-1">
+          <div className="font-medium text-[#242424] flex items-center gap-1.5">
+            <Eye className="w-3.5 h-3.5 text-[#A88C69]" />
+            Direct 3D Click Interaction
+          </div>
+          <p className="leading-relaxed">
+            Click the sliding screen panel directly in the 3D viewport to glide it horizontally across the track.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // VARIANT 2: OPEN ARCHITECTURAL MODULAR SYSTEM (Reference 2)
+  // Minimalist open posts with floating drawers (no exterior doors)
+  // =========================================================================
+  if (state.activeVariant === "open-modular") {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-mono uppercase tracking-widest text-[#77736D] flex items-center gap-1.5">
+            <ArrowLeftRight className="w-3.5 h-3.5 text-[#A88C69]" />
+            Open Architecture
+          </label>
+          <span className="text-[11px] text-[#A88C69] font-mono">
+            Walk-In System
+          </span>
+        </div>
+
+        <div className="p-3.5 bg-[#FAF8F5] rounded-xl border border-[#E8E2D8] text-[11px] text-[#6B5A36] space-y-2">
+          <div className="font-semibold text-[#242424] flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-[#A88C69]" />
+            Open Post Configuration
+          </div>
+          <p className="leading-relaxed text-[#5C5852]">
+            Reference 2 is an open architectural floating post wardrobe system. All storage bays, cantilevered shelves, and dark floating drawers are permanently accessible without exterior sliding doors.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // PRIMARY VARIANT 3: CONTEMPORARY SLIDING WARDROBE (Reference 3)
+  // Dual-track outward-sliding bypass kinematics (Left slides Left, Right slides Right)
+  // =========================================================================
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">

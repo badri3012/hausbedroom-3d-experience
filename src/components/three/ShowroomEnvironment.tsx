@@ -4,7 +4,14 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { createParquetFloorTexture } from "@/lib/materials";
 
-export function ShowroomEnvironment() {
+interface ShowroomEnvironmentProps {
+  activeVariant?: string;
+}
+
+export function ShowroomEnvironment({ activeVariant }: ShowroomEnvironmentProps) {
+  // Determine alcove wall spread based on wardrobe width
+  const pilasterX = activeVariant === "full-modular" ? 2.50 : (activeVariant === "open-modular" ? 2.15 : 2.05);
+
   // Parquet hardwood floor texture
   const parquetTexture = useMemo(() => {
     return createParquetFloorTexture();
@@ -70,16 +77,16 @@ export function ShowroomEnvironment() {
 
       {/* 3. ALCOVE RETURN WALLS FRAMING THE WARDROBE (Reference Image 3) */}
       {/* Left alcove drywall return pilaster with clean outward travel clearance */}
-      <mesh position={[-2.05, 1.25, 0.05]} receiveShadow material={wallMat}>
+      <mesh position={[-pilasterX, 1.25, 0.05]} receiveShadow material={wallMat}>
         <boxGeometry args={[0.46, 2.50, 0.72]} />
       </mesh>
       {/* Right alcove drywall return pilaster with clean outward travel clearance */}
-      <mesh position={[2.05, 1.25, 0.05]} receiveShadow material={wallMat}>
+      <mesh position={[pilasterX, 1.25, 0.05]} receiveShadow material={wallMat}>
         <boxGeometry args={[0.46, 2.50, 0.72]} />
       </mesh>
 
       {/* 4. LIGHT SWITCH ON LEFT WALL (Authentic Reference 3 Detail) */}
-      <group position={[-1.82, 1.30, 0.28]}>
+      <group position={[-pilasterX + 0.23, 1.30, 0.28]}>
         {/* Switch faceplate */}
         <mesh material={switchPlateMat}>
           <boxGeometry args={[0.012, 0.12, 0.08]} />

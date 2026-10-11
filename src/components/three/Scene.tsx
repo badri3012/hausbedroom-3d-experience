@@ -47,7 +47,7 @@ export function Scene({ state, onUpdateState }: SceneProps) {
           <Environment preset="city" />
 
           {/* Realistic Showroom Floor & Enclosure */}
-          <ShowroomEnvironment />
+          <ShowroomEnvironment activeVariant={state.activeVariant} />
 
           {/* Ground Contact Shadows */}
           <ContactShadows
@@ -73,6 +73,7 @@ export function Scene({ state, onUpdateState }: SceneProps) {
             preset={state.cameraPreset}
             interiorViewActive={state.interiorViewActive}
             autoRotate={state.autoRotate}
+            activeVariant={state.activeVariant}
           />
         </Suspense>
       </Canvas>

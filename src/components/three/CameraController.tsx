@@ -11,6 +11,7 @@ interface CameraControllerProps {
   preset: CameraPreset;
   interiorViewActive: boolean;
   autoRotate: boolean;
+  activeVariant?: string;
 }
 
 // Camera presets with comfortable luxury framing margins for 3.0m - 3.6m models
@@ -41,6 +42,7 @@ export function CameraController({
   preset,
   interiorViewActive,
   autoRotate,
+  activeVariant,
 }: CameraControllerProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const { camera, size } = useThree();
@@ -58,12 +60,16 @@ export function CameraController({
     const target = new THREE.Vector3(...config.target);
     const pos = new THREE.Vector3(...config.pos);
 
-    // Fit the whole wardrobe (3.0 m wide, 2.4 m tall + margins) for this aspect
-    // ratio by pulling back along the preset's own view direction only if needed.
+    // Fit the whole wardrobe based on actual physical width (Full Modular is 4.3m wide)
     if (activePreset !== "interior") {
       const fov = (camera as THREE.PerspectiveCamera).fov ?? 38;
       const tanHalf = Math.tan(THREE.MathUtils.degToRad(fov / 2));
-      const FIT_HALF_W = 1.95; // 1.5 m half-width + ~0.45 m margin
+      const FIT_HALF_W =
+        activeVariant === "full-modular"
+          ? 2.45 // 2.15 m half-width + 0.30 m margin
+          : activeVariant === "open-modular"
+          ? 2.10
+          : 1.95; // 1.50 m half-width + 0.45 m margin
       const FIT_HALF_H = 1.45; // 1.2 m half-height + ~0.25 m margin (floor + header)
       const dH = FIT_HALF_W / (tanHalf * aspectBucket);
       const dV = FIT_HALF_H / tanHalf;
@@ -71,12 +77,15 @@ export function CameraController({
       const offset = pos.clone().sub(target);
       const scale = Math.max(1, fitDist / offset.length());
       pos.copy(target).add(offset.multiplyScalar(scale));
+    } else if (activeVariant === "full-modular") {
+      // Pull back slightly for the wide modular interior
+      pos.set(0, 1.20, 4.3);
     }
 
     targetPosRef.current.copy(pos);
     targetLookAtRef.current.copy(target);
     isTransitioningRef.current = true;
-  }, [preset, interiorViewActive, aspectBucket, camera]);
+  }, [preset, interiorViewActive, aspectBucket, camera, activeVariant]);
 
   useFrame((_, delta) => {
     if (!controlsRef.current) return;
