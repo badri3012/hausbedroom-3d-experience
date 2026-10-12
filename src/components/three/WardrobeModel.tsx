@@ -5,6 +5,11 @@ import { ContemporarySlidingWardrobe } from "./ContemporarySlidingWardrobe";
 import { FullModularWardrobe } from "./FullModularWardrobe";
 import { OpenModularWardrobe } from "./OpenModularWardrobe";
 import {
+  ParametricPoleWardrobe,
+  ParametricFlexWardrobe,
+  ParametricLShapeAssembly,
+} from "./parametric";
+import {
   WardrobeInteractionState,
   WoodFinishOption,
   FrameFinishOption,
@@ -16,13 +21,38 @@ import {
   DOOR_PANEL_OPTIONS,
   createProceduralWoodTexture,
 } from "@/lib/materials";
+import {
+  PoleState,
+  PoleDesignResult,
+  PoleLShapeDesign,
+  FlexState,
+  FlexDesignResult,
+} from "@/lib/engineering/types";
 
-interface WardrobeModelProps {
+export interface WardrobeModelProps {
   state: WardrobeInteractionState;
   onUpdateState: (updates: Partial<WardrobeInteractionState>) => void;
+  // Engineering Configuration Props
+  productSystem?: "pole" | "flex" | "showroom";
+  shape?: "straight" | "lshape";
+  poleState?: PoleState;
+  poleDesign?: PoleDesignResult;
+  poleLShapeDesign?: PoleLShapeDesign;
+  flexState?: FlexState;
+  flexDesign?: FlexDesignResult;
 }
 
-export function WardrobeModel({ state, onUpdateState }: WardrobeModelProps) {
+export function WardrobeModel({
+  state,
+  onUpdateState,
+  productSystem = "pole",
+  shape = "straight",
+  poleState,
+  poleDesign,
+  poleLShapeDesign,
+  flexState,
+  flexDesign,
+}: WardrobeModelProps) {
   // Resolve active finish options
   const woodMaterial: WoodFinishOption = useMemo(() => {
     return (
@@ -50,6 +80,76 @@ export function WardrobeModel({ state, onUpdateState }: WardrobeModelProps) {
     return createProceduralWoodTexture(state.woodFinish);
   }, [state.woodFinish]);
 
+  // =========================================================================
+  // 1. PARAMETRIC ENGINEERING SYSTEMS (HAUSPOLE & HAUSFLEX)
+  // =========================================================================
+  if (productSystem === "pole" && poleState && poleDesign) {
+    if (shape === "lshape") {
+      return (
+        <ParametricLShapeAssembly
+          productSystem="pole"
+          poleState={poleState}
+          poleLShapeDesign={poleLShapeDesign}
+          flexState={flexState as FlexState}
+          interactionState={state}
+          onUpdateState={onUpdateState}
+          woodMaterial={woodMaterial}
+          frameMaterial={frameMaterial}
+          doorPanelMaterial={doorPanelMaterial}
+          woodTexture={woodTexture}
+        />
+      );
+    }
+
+    return (
+      <ParametricPoleWardrobe
+        poleState={poleState}
+        poleDesign={poleDesign}
+        interactionState={state}
+        onUpdateState={onUpdateState}
+        woodMaterial={woodMaterial}
+        frameMaterial={frameMaterial}
+        doorPanelMaterial={doorPanelMaterial}
+        woodTexture={woodTexture}
+      />
+    );
+  }
+
+  if (productSystem === "flex" && flexState && flexDesign) {
+    if (shape === "lshape") {
+      return (
+        <ParametricLShapeAssembly
+          productSystem="flex"
+          poleState={poleState as PoleState}
+          flexState={flexState}
+          flexDesign={flexDesign}
+          interactionState={state}
+          onUpdateState={onUpdateState}
+          woodMaterial={woodMaterial}
+          frameMaterial={frameMaterial}
+          doorPanelMaterial={doorPanelMaterial}
+          woodTexture={woodTexture}
+        />
+      );
+    }
+
+    return (
+      <ParametricFlexWardrobe
+        flexState={flexState}
+        flexDesign={flexDesign}
+        interactionState={state}
+        onUpdateState={onUpdateState}
+        woodMaterial={woodMaterial}
+        frameMaterial={frameMaterial}
+        doorPanelMaterial={doorPanelMaterial}
+        woodTexture={woodTexture}
+      />
+    );
+  }
+
+  // =========================================================================
+  // 2. SHOWROOM PRESET MODELS (LEGACY & EXHIBITION VIEW)
+  // =========================================================================
   if (state.activeVariant === "full-modular") {
     return (
       <FullModularWardrobe

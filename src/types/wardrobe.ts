@@ -6,7 +6,15 @@ export type DoorPanelId = "frosted-glass" | "smoked-glass" | "light-neutral";
 
 export type CameraPreset = "default" | "front" | "interior" | "side" | "top";
 
-export type ConfiguratorTab = "overview" | "materials" | "doors" | "interior" | "dimensions" | "enquire";
+export type ConfiguratorTab =
+  | "overview"
+  | "materials"
+  | "doors"
+  | "interior"
+  | "dimensions"
+  | "quote"
+  | "showroom"
+  | "enquire";
 
 export interface WoodFinishOption {
   id: WoodFinishId;

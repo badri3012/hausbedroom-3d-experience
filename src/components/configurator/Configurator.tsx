@@ -10,6 +10,14 @@ import { InteriorControls } from "./InteriorControls";
 import { DimensionsPanel } from "./DimensionsPanel";
 import { EnquiryModal } from "./EnquiryModal";
 import {
+  SystemShapeSelector,
+  DimensionalControls,
+  DoorConfigurationPanel,
+  InternalLayoutAddonsPanel,
+  LiveQuotationCard,
+} from "./engineering";
+import { useConfiguratorEngineering } from "@/hooks/useConfiguratorEngineering";
+import {
   WardrobeInteractionState,
   ConfiguratorTab,
   WardrobeVariantId,
@@ -24,16 +32,18 @@ import {
   DOOR_PANEL_OPTIONS,
 } from "@/lib/materials";
 import {
-  Layers,
+  Ruler,
   Palette,
   ArrowLeftRight,
   Maximize2,
-  Ruler,
-  FileText,
-  RotateCcw,
+  Calculator,
+  MessageSquare,
   Sparkles,
+  RotateCcw,
   ChevronDown,
   ChevronUp,
+  Columns3,
+  Check,
 } from "lucide-react";
 
 export function Configurator() {
@@ -68,6 +78,10 @@ export function Configurator() {
   const [activeTab, setActiveTab] = useState<ConfiguratorTab>("overview");
   const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(true);
+  const [headerCopied, setHeaderCopied] = useState(false);
+
+  // Engineering calculation engine hook
+  const eng = useConfiguratorEngineering();
 
   // Active variant & finish lookups
   const currentVariant =
@@ -112,12 +126,8 @@ export function Configurator() {
   };
 
   const handleResetView = () => {
-    const variant = WARDROBE_VARIANTS.find((v) => v.id === state.activeVariant);
-    setState({
-      activeVariant: state.activeVariant,
-      woodFinish: variant?.defaultWood || "natural-oak",
-      frameFinish: variant?.defaultFrame || "matte-black",
-      doorPanel: variant?.defaultDoorPanel || "frosted-glass",
+    setState((prev) => ({
+      ...prev,
       leftDoorOpen: false,
       rightDoorOpen: false,
       bothDoorsOpen: false,
@@ -127,44 +137,69 @@ export function Configurator() {
       cameraPreset: "default",
       interiorViewActive: false,
       autoRotate: false,
-      lightingMode: "showroom-spots",
       showDimensions: false,
-      showSpotlights: true,
-      shelfLedsOn: true,
-      hoveredComponent: null,
-      selectedComponent: null,
-    });
+    }));
   };
 
-  const tabs: { id: ConfiguratorTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "overview", label: "Overview", icon: Layers },
-    { id: "materials", label: "Materials", icon: Palette },
+  const handleCopyHeaderQuote = () => {
+    navigator.clipboard.writeText(eng.quotationText);
+    setHeaderCopied(true);
+    setTimeout(() => setHeaderCopied(false), 2500);
+  };
+
+  // Active price calculation for display
+  const currentTotal =
+    eng.productSystem === "pole"
+      ? (eng.shape === "lshape" ? eng.poleLSPrice.total : eng.poleStraightPrice.total) || 0
+      : eng.flexPrice.total;
+
+  const currentFootage =
+    eng.productSystem === "pole"
+      ? eng.shape === "lshape"
+        ? eng.poleLSPrice.feet
+        : eng.poleStraightPrice.feet
+      : eng.flexPrice.feet;
+
+  const tabs: {
+    id: ConfiguratorTab;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [
+    { id: "overview", label: "Dimensions", icon: Ruler },
     { id: "doors", label: "Doors", icon: ArrowLeftRight },
     { id: "interior", label: "Interior", icon: Maximize2 },
-    { id: "dimensions", label: "Dimensions", icon: Ruler },
-    { id: "enquire", label: "Enquire", icon: FileText },
+    { id: "materials", label: "Materials", icon: Palette },
+    { id: "quote", label: "Quotation", icon: Calculator },
+    { id: "showroom", label: "Showroom", icon: Columns3 },
   ];
 
   return (
     <div className="w-full h-screen flex flex-col bg-[#F5F3EF] text-[#242424] overflow-hidden select-none">
       {/* ========================================================= */}
-      {/* 1. TOP LUXURY NAVIGATION BAR (Protected from Clipping)    */}
+      {/* 1. TOP NAVIGATION BAR                                     */}
       {/* ========================================================= */}
       <header className="h-14 sm:h-16 px-4 sm:px-6 bg-[#F5F3EF] border-b border-[#E6E1D8] flex items-center justify-between shrink-0 z-20 gap-3">
-        {/* Brand Logo & Subtitle */}
+        {/* Brand Logo & System Info */}
         <div className="flex items-center gap-3 min-w-0 shrink-0">
           <div className="flex flex-col">
             <span className="font-serif-editorial text-[18px] sm:text-[20px] tracking-tight font-bold text-[#242424] leading-none whitespace-nowrap">
               HausBedroom
             </span>
             <span className="text-[9px] font-mono tracking-widest uppercase text-[#A88C69] mt-0.5 whitespace-nowrap">
-              Singapore 3D Experience
+              3D Wardrobe Configurator
             </span>
           </div>
 
           <div className="hidden lg:flex items-center gap-2 pl-3.5 border-l border-[#E6E1D8]">
             <span className="text-[11px] font-mono text-[#77736D]">
-              Active: <strong className="text-[#242424]">{currentVariant.title}</strong>
+              System:{" "}
+              <strong className="text-[#242424]">
+                {eng.productSystem === "pole" ? "HausPole" : "HausFlex"} (
+                {eng.shape === "straight" ? "Straight" : "L-Shape"})
+              </strong>
+            </span>
+            <span className="text-[11px] font-mono text-[#A88C69]">
+              · {currentFootage.toFixed(1)} ft
             </span>
           </div>
         </div>
@@ -180,11 +215,34 @@ export function Configurator() {
           </button>
 
           <button
+            onClick={handleCopyHeaderQuote}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all shadow-sm ${
+              headerCopied
+                ? "bg-emerald-600 text-white"
+                : "bg-[#25D366] hover:bg-[#20BE5B] text-white"
+            }`}
+          >
+            {headerCopied ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Copied!</span>
+              </>
+            ) : (
+              <>
+                <MessageSquare className="w-3.5 h-3.5 fill-white" />
+                <span className="hidden sm:inline">WhatsApp Quote</span>
+                <span className="sm:hidden">Quote</span>
+              </>
+            )}
+          </button>
+
+          <button
             onClick={() => setIsEnquiryOpen(true)}
             className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-[12px] sm:text-[13px] font-medium bg-[#242424] text-white hover:bg-[#3A3A3A] transition-all shadow-sm"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#C5A059]" />
-            <span className="whitespace-nowrap">Request This Wardrobe</span>
+            <span className="whitespace-nowrap hidden sm:inline">Enquire Custom</span>
+            <span className="sm:hidden">Enquire</span>
           </button>
         </div>
       </header>
@@ -197,9 +255,19 @@ export function Configurator() {
         {/* LEFT VIEWPORT: 3D REAL-TIME WEBGL CANVAS                */}
         {/* ======================================================= */}
         <div className="flex-1 relative h-[55vh] md:h-full bg-[#181816] overflow-hidden">
-          <Scene state={state} onUpdateState={handleUpdateState} />
+          <Scene
+            state={state}
+            onUpdateState={handleUpdateState}
+            productSystem={eng.productSystem}
+            shape={eng.shape}
+            poleState={eng.poleState}
+            poleDesign={eng.poleDesign}
+            poleLShapeDesign={eng.poleLShapeDesign}
+            flexState={eng.flexState}
+            flexDesign={eng.flexDesign}
+          />
 
-          {/* Clean Floating HUD (Camera, Lights, Doors, Drawers) */}
+          {/* Clean Floating HUD (Camera, Lights, Doors, Drawers, Dimensions) */}
           <ControlPanel
             state={state}
             onUpdateState={handleUpdateState}
@@ -208,10 +276,10 @@ export function Configurator() {
         </div>
 
         {/* ======================================================= */}
-        {/* RIGHT PANEL: LUXURY PRODUCT CONFIGURATOR                */}
+        {/* RIGHT PANEL: CONFIGURATOR CONTROLS                      */}
         {/* ======================================================= */}
         <aside
-          className={`w-full md:w-[380px] lg:w-[420px] xl:w-[440px] bg-[#FAF8F5] border-t md:border-t-0 md:border-l border-[#E6E1D8] flex flex-col shrink-0 z-20 transition-all duration-300 ${
+          className={`w-full md:w-[390px] lg:w-[430px] xl:w-[450px] bg-[#FAF8F5] border-t md:border-t-0 md:border-l border-[#E6E1D8] flex flex-col shrink-0 z-20 transition-all duration-300 ${
             mobileSheetOpen ? "h-[45vh] md:h-full" : "h-11 md:h-full"
           }`}
         >
@@ -225,7 +293,7 @@ export function Configurator() {
                 Configuration Options
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded bg-[#A88C69]/10 text-[#A88C69] font-mono">
-                {currentVariant.title}
+                ${currentTotal.toFixed(2)} SGD
               </span>
             </div>
             {mobileSheetOpen ? (
@@ -244,14 +312,8 @@ export function Configurator() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => {
-                    if (tab.id === "enquire") {
-                      setIsEnquiryOpen(true);
-                    } else {
-                      setActiveTab(tab.id);
-                    }
-                  }}
-                  className={`flex items-center gap-1.5 py-1.5 sm:py-2 px-2 sm:px-2.5 rounded-xl text-[11px] sm:text-[11.5px] font-medium whitespace-nowrap transition-all ${
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1.5 py-1.5 sm:py-2 px-2.5 rounded-xl text-[11px] sm:text-[11.5px] font-medium whitespace-nowrap transition-all ${
                     isActive
                       ? "bg-white text-[#242424] shadow-sm font-semibold"
                       : "text-[#77736D] hover:text-[#242424]"
@@ -270,61 +332,58 @@ export function Configurator() {
 
           {/* CONFIGURATOR SCROLLABLE BODY */}
           <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4">
-            {/* 1. OVERVIEW TAB */}
+            {/* 1. DIMENSIONS & SYSTEM TAB */}
             {activeTab === "overview" && (
               <div className="space-y-4 animate-in fade-in duration-200">
-                {/* Variant Selector */}
-                <WardrobeSelector
-                  activeVariant={state.activeVariant}
-                  onSelectVariant={handleSelectVariant}
+                <SystemShapeSelector
+                  productSystem={eng.productSystem}
+                  onSelectSystem={eng.setProductSystem}
+                  shape={eng.shape}
+                  onSelectShape={eng.setShape}
                 />
-
-                {/* Model Overview Details */}
-                <div className="p-4 bg-white rounded-xl border border-[#E6E1D8] space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-mono uppercase text-[#A88C69] font-medium">
-                      Design Highlights
-                    </span>
-                    <span className="text-[11px] font-mono text-[#77736D]">
-                      {currentVariant.referenceTag}
-                    </span>
-                  </div>
-
-                  <p className="text-[12px] text-[#77736D] leading-relaxed">
-                    {currentVariant.description}
-                  </p>
-
-                  <ul className="space-y-1.5 text-[11px] text-[#242424]">
-                    {currentVariant.highlights.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#A88C69] mt-1.5 shrink-0" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Active Materials Summary Card */}
-                <div className="p-3.5 bg-white rounded-xl border border-[#E6E1D8] flex items-center justify-between text-[11px]">
-                  <div>
-                    <span className="text-[#77736D] block text-[10px] font-mono uppercase">
-                      Selected Finishes
-                    </span>
-                    <span className="font-medium text-[#242424]">
-                      {currentWood.name} · {currentFrame.name} · {currentDoorPanel.name}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab("materials")}
-                    className="text-[#A88C69] font-medium hover:underline text-[11px]"
-                  >
-                    Customize →
-                  </button>
-                </div>
+                <DimensionalControls
+                  productSystem={eng.productSystem}
+                  shape={eng.shape}
+                  poleState={eng.poleState}
+                  onUpdatePole={eng.updatePoleState}
+                  flexState={eng.flexState}
+                  onUpdateFlex={eng.updateFlexState}
+                />
               </div>
             )}
 
-            {/* 2. MATERIALS TAB */}
+            {/* 2. DOORS TAB */}
+            {activeTab === "doors" && (
+              <div className="animate-in fade-in duration-200">
+                <DoorConfigurationPanel
+                  productSystem={eng.productSystem}
+                  poleState={eng.poleState}
+                  onUpdatePole={eng.updatePoleState}
+                  poleDesign={eng.poleDesign}
+                  flexState={eng.flexState}
+                  onUpdateFlex={eng.updateFlexState}
+                  flexDesign={eng.flexDesign}
+                />
+              </div>
+            )}
+
+            {/* 3. INTERIOR TAB */}
+            {activeTab === "interior" && (
+              <div className="animate-in fade-in duration-200">
+                <InternalLayoutAddonsPanel
+                  productSystem={eng.productSystem}
+                  poleState={eng.poleState}
+                  onUpdatePole={eng.updatePoleState}
+                  poleDesign={eng.poleDesign}
+                  flexState={eng.flexState}
+                  onUpdateFlex={eng.updateFlexState}
+                  flexDesign={eng.flexDesign}
+                  activeFlexProposal={eng.activeFlexProposal || undefined}
+                />
+              </div>
+            )}
+
+            {/* 4. MATERIALS TAB */}
             {activeTab === "materials" && (
               <div className="animate-in fade-in duration-200">
                 <MaterialSelector
@@ -338,23 +397,33 @@ export function Configurator() {
               </div>
             )}
 
-            {/* 3. DOORS TAB */}
-            {activeTab === "doors" && (
+            {/* 5. LIVE QUOTATION TAB */}
+            {activeTab === "quote" && (
               <div className="animate-in fade-in duration-200">
-                <DoorControls state={state} onUpdateState={handleUpdateState} />
+                <LiveQuotationCard
+                  productSystem={eng.productSystem}
+                  shape={eng.shape}
+                  poleState={eng.poleState}
+                  poleDesign={eng.poleDesign}
+                  poleLShapeDesign={eng.poleLShapeDesign}
+                  poleStraightPrice={eng.poleStraightPrice}
+                  poleLSPrice={eng.poleLSPrice}
+                  poleAddons={eng.poleAddons}
+                  flexState={eng.flexState}
+                  flexDesign={eng.flexDesign}
+                  flexPrice={eng.flexPrice}
+                  quotationText={eng.quotationText}
+                />
               </div>
             )}
 
-            {/* 4. INTERIOR TAB */}
-            {activeTab === "interior" && (
-              <div className="animate-in fade-in duration-200">
-                <InteriorControls state={state} onUpdateState={handleUpdateState} />
-              </div>
-            )}
-
-            {/* 5. DIMENSIONS TAB */}
-            {activeTab === "dimensions" && (
-              <div className="animate-in fade-in duration-200">
+            {/* 6. SHOWROOM EXHIBITION GALLERY TAB */}
+            {activeTab === "showroom" && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <WardrobeSelector
+                  activeVariant={state.activeVariant}
+                  onSelectVariant={handleSelectVariant}
+                />
                 <DimensionsPanel
                   dimensions={currentVariant.dimensions}
                   showDimensions={state.showDimensions}
@@ -366,22 +435,48 @@ export function Configurator() {
             )}
           </div>
 
-          {/* BOTTOM CTA BAR */}
-          <div className="p-3.5 sm:p-4 bg-[#F5F3EF] border-t border-[#E6E1D8] shrink-0">
+          {/* BOTTOM LIVE PRICING & CTA BAR */}
+          <div className="p-3.5 sm:p-4 bg-[#F5F3EF] border-t border-[#E6E1D8] shrink-0 space-y-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <div>
+                <span className="text-[#777] block">Estimated Total:</span>
+                <span className="font-mono font-bold text-[16px] text-[#242424]">
+                  ${currentTotal.toFixed(2)} SGD
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveTab("quote")}
+                className="text-[11px] font-medium text-[#A88C69] hover:underline"
+              >
+                View Breakdown →
+              </button>
+            </div>
+
             <button
-              onClick={() => setIsEnquiryOpen(true)}
-              className="w-full py-3 px-4 bg-[#242424] hover:bg-[#383838] text-white rounded-xl text-[13px] font-medium flex items-center justify-center gap-2 transition-all shadow-md"
+              onClick={handleCopyHeaderQuote}
+              className={`w-full py-2.5 px-4 rounded-xl text-[12px] font-medium flex items-center justify-center gap-2 transition-all shadow-sm ${
+                headerCopied
+                  ? "bg-emerald-600 text-white"
+                  : "bg-[#25D366] hover:bg-[#20BE5B] text-white"
+              }`}
             >
-              <Sparkles className="w-4 h-4 text-[#C5A059]" />
-              <span>Request This Wardrobe Quote</span>
+              {headerCopied ? (
+                <>
+                  <Check className="w-4 h-4 text-white" />
+                  <span>Quotation Copied to Clipboard!</span>
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="w-4 h-4 fill-white" />
+                  <span>Copy WhatsApp Quotation (${currentTotal.toFixed(2)})</span>
+                </>
+              )}
             </button>
           </div>
         </aside>
       </div>
 
-      {/* ========================================================= */}
-      {/* 3. CLIENT ENQUIRY MODAL                                   */}
-      {/* ========================================================= */}
+      {/* CUSTOM ENQUIRY MODAL */}
       <EnquiryModal
         isOpen={isEnquiryOpen}
         onClose={() => setIsEnquiryOpen(false)}
