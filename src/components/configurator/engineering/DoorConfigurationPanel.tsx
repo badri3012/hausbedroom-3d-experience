@@ -1,46 +1,146 @@
 "use client";
 
 import React from "react";
-import { ProductSystemType } from "@/hooks/useConfiguratorEngineering";
-import { PoleState, FlexState, PoleDesignResult, FlexDesignResult } from "@/lib/engineering/types";
-import { ArrowLeftRight, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { ProductSystemType, WardrobeShapeType } from "@/hooks/useConfiguratorEngineering";
+import {
+  PoleState,
+  FlexState,
+  PoleDesignResult,
+  FlexDesignResult,
+  PoleLShapeDesign,
+  FlexLShapeDesign,
+} from "@/lib/engineering/types";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
 
 interface DoorConfigurationPanelProps {
   productSystem: ProductSystemType;
+  shape?: WardrobeShapeType;
   poleState: PoleState;
   onUpdatePole: (updates: Partial<PoleState>) => void;
   poleDesign?: PoleDesignResult;
+  poleLShapeDesign?: PoleLShapeDesign;
   flexState: FlexState;
   onUpdateFlex: (updates: Partial<FlexState>) => void;
   flexDesign?: FlexDesignResult;
+  flexLShapeDesign?: FlexLShapeDesign;
 }
 
 export function DoorConfigurationPanel({
   productSystem,
+  shape = "straight",
   poleState,
   onUpdatePole,
   poleDesign,
+  poleLShapeDesign,
   flexState,
   onUpdateFlex,
   flexDesign,
+  flexLShapeDesign,
 }: DoorConfigurationPanelProps) {
   const isPole = productSystem === "pole";
-  const doorRequired = isPole ? poleState.doorRequired : flexState.doorRequired;
-  const doorHeightUpgrade = isPole ? poleState.doorHeightUpgrade : flexState.doorHeightUpgrade;
+  const isLShape = shape === "lshape";
+
+  const doorRequired = isPole
+    ? poleState.doorRequired
+    : isLShape
+    ? flexState.ls.doorRequired
+    : flexState.doorRequired;
+
+  const doorHeightUpgrade = isPole
+    ? isLShape
+      ? poleState.ls.doorHeightUpgrade
+      : poleState.doorHeightUpgrade
+    : isLShape
+    ? flexState.ls.doorHeightUpgrade
+    : flexState.doorHeightUpgrade;
+
   const internalHeightUpgrade = isPole
-    ? poleState.internalHeightUpgrade
+    ? isLShape
+      ? poleState.ls.internalHeightUpgrade
+      : poleState.internalHeightUpgrade
+    : isLShape
+    ? flexState.ls.internalHeightUpgrade
     : flexState.internalHeightUpgrade;
 
-  const resolvedDoor = isPole ? poleDesign?.door : flexDesign?.door;
-  const doorOpening = isPole ? poleDesign?.doorOpening : flexDesign?.doorOpening;
-  const doorHeight = isPole ? (poleDesign?.doorHeight || 2400) : (flexDesign?.doorHeight || 2400);
-  const isInfeasible = isPole ? !!poleDesign?.door?.infeasible : !!flexDesign?.door?.forced;
+  const resolvedDoor = isPole
+    ? isLShape
+      ? poleLShapeDesign?.doorA
+      : poleDesign?.door
+    : isLShape
+    ? flexLShapeDesign?.legA?.door
+    : flexDesign?.door;
+
+  const doorOpening = isPole
+    ? isLShape
+      ? poleLShapeDesign?.doorA.opening
+      : poleDesign?.doorOpening
+    : isLShape
+    ? flexLShapeDesign?.legA?.doorOpening
+    : flexDesign?.doorOpening;
+
+  const doorHeight = isPole
+    ? isLShape
+      ? poleState.ls.doorHeightUpgrade
+        ? Math.min(2800, poleState.ls.ceiling)
+        : Math.min(2400, poleState.ls.ceiling)
+      : poleDesign?.doorHeight || 2400
+    : (isLShape ? flexLShapeDesign?.doorHeight : flexDesign?.doorHeight) || 2400;
+
+  const isInfeasible = isPole
+    ? !!(isLShape ? !poleLShapeDesign?.doorA.valid : poleDesign?.door?.infeasible)
+    : !!(isLShape ? flexLShapeDesign?.legA?.door.forced : flexDesign?.door?.forced);
+
   const pelmetHeight = isPole
-    ? poleDesign?.pelmetHeight
-    : Math.max(0, (flexState.ceiling || 2600) - 2400);
+    ? isLShape
+      ? Math.max(0, poleState.ls.ceiling - doorHeight)
+      : poleDesign?.pelmetHeight ?? 0
+    : (isLShape ? flexLShapeDesign?.pelmetHeight : flexDesign?.pelmetHeight) ??
+      Math.max(0, (flexState.ceiling || 2600) - doorHeight);
+
+  // Active Door Type UI Selection
+  const activeDoorMode = isPole
+    ? poleState.doorTypePref === "sliding"
+      ? "sliding"
+      : poleState.doorTypePref === "swing"
+      ? "swing"
+      : poleState.doorTypePref === "wooden" || poleState.doorTypePref === "aluminum"
+      ? "bifold"
+      : "auto"
+    : flexState.flexDoorTypePref === "sliding"
+    ? "sliding"
+    : flexState.flexDoorTypePref === "swing"
+    ? "swing"
+    : flexState.flexDoorTypePref === "wooden" || flexState.flexDoorTypePref === "aluminum"
+    ? "bifold"
+    : "auto";
+
+  const handleSelectDoorMode = (mode: "auto" | "sliding" | "bifold" | "swing") => {
+    const nextPref: "auto" | "sliding" | "wooden" | "aluminum" | "swing" =
+      mode === "bifold" ? "aluminum" : mode;
+    if (isPole) {
+      onUpdatePole({
+        doorTypePref: nextPref,
+        doorForcedSwing: mode === "swing",
+        ls: {
+          ...poleState.ls,
+          doorTypePref: nextPref,
+          legADoorType: nextPref,
+          legBDoorType: nextPref,
+        },
+      });
+    } else {
+      onUpdateFlex({
+        flexDoorTypePref: nextPref,
+        ls: {
+          ...flexState.ls,
+          doorTypePref: nextPref,
+        },
+      });
+    }
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       {/* 1. DOOR REQUIRED TOGGLE */}
       <div className="bg-white p-3.5 rounded-xl border border-[#E6E1D8] flex items-center justify-between">
         <div>
@@ -53,8 +153,21 @@ export function DoorConfigurationPanel({
         </div>
         <button
           onClick={() => {
-            if (isPole) onUpdatePole({ doorRequired: !doorRequired });
-            else onUpdateFlex({ doorRequired: !doorRequired });
+            const next = !doorRequired;
+            if (isPole) {
+              onUpdatePole({
+                doorRequired: next,
+                ls: { ...poleState.ls, doorRequired: next },
+              });
+            } else {
+              onUpdateFlex({
+                doorRequired: next,
+                ls: {
+                  ...flexState.ls,
+                  doorRequired: next,
+                },
+              });
+            }
           }}
           className={`px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all ${
             doorRequired
@@ -71,33 +184,22 @@ export function DoorConfigurationPanel({
           {/* 2. DOOR TYPE PREFERENCE */}
           <div className="bg-white p-3.5 rounded-xl border border-[#E6E1D8] space-y-2">
             <span className="text-[12px] font-semibold text-[#242424] block">
-              Door Type Preference
+              Door Mechanism Preference
             </span>
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: "auto", label: "Auto (Recommended)" },
-                { id: "sliding", label: "Sliding Track" },
-                { id: "bifold", label: "Bifold Folding" },
-                { id: "swing", label: "Swing Hinged" },
-              ].map((opt) => {
-                const currentPref = isPole
-                  ? poleState.doorTypePref
-                  : flexState.flexDoorTypePref;
-                const isSelected = currentPref === opt.id;
+              {(
+                [
+                  { id: "auto", label: "Auto (Recommended)" },
+                  { id: "sliding", label: "Sliding Track" },
+                  { id: "bifold", label: "Bifold Folding" },
+                  { id: "swing", label: "Swing Hinged" },
+                ] as const
+              ).map((opt) => {
+                const isSelected = activeDoorMode === opt.id;
                 return (
                   <button
                     key={opt.id}
-                    onClick={() => {
-                      if (isPole)
-                        onUpdatePole({
-                          doorTypePref: opt.id as any,
-                          doorForcedSwing: opt.id === "swing",
-                        });
-                      else
-                        onUpdateFlex({
-                          flexDoorTypePref: opt.id as any,
-                        });
-                    }}
+                    onClick={() => handleSelectDoorMode(opt.id)}
                     className={`py-2 px-2.5 rounded-lg text-[11px] font-medium border text-left transition-all ${
                       isSelected
                         ? "bg-[#A88C69] text-white border-[#A88C69] shadow-sm"
@@ -111,54 +213,88 @@ export function DoorConfigurationPanel({
             </div>
           </div>
 
-          {/* 3. MATERIAL PREFERENCE (POLE SYSTEM) */}
-          {isPole && (
-            <div className="bg-white p-3.5 rounded-xl border border-[#E6E1D8] space-y-2">
-              <span className="text-[12px] font-semibold text-[#242424] block">
-                Door Profile Material
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() =>
-                    onUpdatePole({ doorType: "sliding", doorAutoMaterial: false })
+          {/* 3. DOOR PROFILE MATERIAL PREFERENCE */}
+          <div className="bg-white p-3.5 rounded-xl border border-[#E6E1D8] space-y-2">
+            <span className="text-[12px] font-semibold text-[#242424] block">
+              Door Profile Material
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  if (isPole) {
+                    const nextPref =
+                      poleState.doorTypePref === "wooden" ? "aluminum" : "sliding";
+                    onUpdatePole({
+                      doorTypePref: nextPref,
+                      doorAutoMaterial: false,
+                    });
+                  } else {
+                    onUpdateFlex({
+                      flexDoorTypePref: "aluminum",
+                      ls: { ...flexState.ls, doorTypePref: "aluminum" },
+                    });
                   }
-                  className={`p-2 rounded-lg text-[11px] border font-medium transition-all ${
-                    poleState.doorType === "sliding"
-                      ? "bg-[#242424] text-white border-[#242424]"
-                      : "bg-[#FAF8F5] text-[#242424] border-[#E6E1D8]"
-                  }`}
-                >
-                  Aluminium Framing
-                </button>
-                <button
-                  onClick={() =>
-                    onUpdatePole({ doorType: "wooden", doorAutoMaterial: false })
+                }}
+                className={`p-2 rounded-lg text-[11px] border font-medium transition-all ${
+                  (isPole
+                    ? poleDesign?.door.type !== "wooden"
+                    : flexDesign?.door.material !== "wooden")
+                    ? "bg-[#242424] text-white border-[#242424]"
+                    : "bg-[#FAF8F5] text-[#242424] border-[#E6E1D8]"
+                }`}
+              >
+                Aluminium & Glass Frame
+              </button>
+              <button
+                onClick={() => {
+                  if (isPole) {
+                    onUpdatePole({
+                      doorTypePref: "wooden",
+                      doorAutoMaterial: false,
+                    });
+                  } else {
+                    onUpdateFlex({
+                      flexDoorTypePref: "wooden",
+                      ls: { ...flexState.ls, doorTypePref: "wooden" },
+                    });
                   }
-                  className={`p-2 rounded-lg text-[11px] border font-medium transition-all ${
-                    poleState.doorType === "wooden"
-                      ? "bg-[#242424] text-white border-[#242424]"
-                      : "bg-[#FAF8F5] text-[#242424] border-[#E6E1D8]"
-                  }`}
-                >
-                  Full Wooden Flush
-                </button>
-              </div>
+                }}
+                className={`p-2 rounded-lg text-[11px] border font-medium transition-all ${
+                  (isPole
+                    ? poleDesign?.door.type === "wooden"
+                    : flexDesign?.door.material === "wooden")
+                    ? "bg-[#242424] text-white border-[#242424]"
+                    : "bg-[#FAF8F5] text-[#242424] border-[#E6E1D8]"
+                }`}
+              >
+                Full Wooden Flush
+              </button>
             </div>
-          )}
+          </div>
 
           {/* 4. HEIGHT UPGRADE OPTIONS */}
           <div className="bg-white p-3.5 rounded-xl border border-[#E6E1D8] space-y-2.5">
             <span className="text-[12px] font-semibold text-[#242424] block">
-              Height Upgrades
+              Height Upgrades (Ceiling &gt; 2650mm)
             </span>
             <label className="flex items-center justify-between text-[11px] text-[#333] cursor-pointer">
-              <span>Upgrade Door Height (to 2800mm max)</span>
+              <span>Upgrade Door Height ({isPole ? "to 2800mm" : "to 2650mm"})</span>
               <input
                 type="checkbox"
                 checked={doorHeightUpgrade}
                 onChange={(e) => {
-                  if (isPole) onUpdatePole({ doorHeightUpgrade: e.target.checked });
-                  else onUpdateFlex({ doorHeightUpgrade: e.target.checked });
+                  const checked = e.target.checked;
+                  if (isPole) {
+                    onUpdatePole({
+                      doorHeightUpgrade: checked,
+                      ls: { ...poleState.ls, doorHeightUpgrade: checked },
+                    });
+                  } else {
+                    onUpdateFlex({
+                      doorHeightUpgrade: checked,
+                      ls: { ...flexState.ls, doorHeightUpgrade: checked },
+                    });
+                  }
                 }}
                 className="w-4 h-4 accent-[#242424] rounded"
               />
@@ -169,8 +305,18 @@ export function DoorConfigurationPanel({
                 type="checkbox"
                 checked={internalHeightUpgrade}
                 onChange={(e) => {
-                  if (isPole) onUpdatePole({ internalHeightUpgrade: e.target.checked });
-                  else onUpdateFlex({ internalHeightUpgrade: e.target.checked });
+                  const checked = e.target.checked;
+                  if (isPole) {
+                    onUpdatePole({
+                      internalHeightUpgrade: checked,
+                      ls: { ...poleState.ls, internalHeightUpgrade: checked },
+                    });
+                  } else {
+                    onUpdateFlex({
+                      internalHeightUpgrade: checked,
+                      ls: { ...flexState.ls, internalHeightUpgrade: checked },
+                    });
+                  }
                 }}
                 className="w-4 h-4 accent-[#242424] rounded"
               />
@@ -179,14 +325,16 @@ export function DoorConfigurationPanel({
 
           {/* 5. LIVE ENGINEERING CALCULATION STATUS CARD */}
           {resolvedDoor && (
-            <div className="bg-[#FAF8F5] p-3 rounded-xl border border-[#E6E1D8] space-y-2">
+            <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-[#E6E1D8] space-y-2">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#242424]">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Computed Door Resolution</span>
+                <span>
+                  Computed Door Engineering {isLShape ? "(Leg A & Leg B)" : ""}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] font-mono">
                 <div>
-                  <span className="text-[#777]">Opening: </span>
+                  <span className="text-[#777]">{isLShape ? "Leg A Open: " : "Opening: "}</span>
                   <strong>{doorOpening} mm</strong>
                 </div>
                 <div>
@@ -211,13 +359,35 @@ export function DoorConfigurationPanel({
                 </div>
               </div>
 
+              {isLShape && (
+                <div className="pt-1.5 border-t border-[#E6E1D8] grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] font-mono">
+                  <div>
+                    <span className="text-[#777]">Leg B Open: </span>
+                    <strong>
+                      {isPole
+                        ? poleLShapeDesign?.doorB.opening
+                        : flexLShapeDesign?.legB?.doorOpening}{" "}
+                      mm
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-[#777]">Leg B Panels: </span>
+                    <strong>
+                      {isPole
+                        ? `${poleLShapeDesign?.doorB.panelCount} (${poleLShapeDesign?.doorB.type})`
+                        : `${flexLShapeDesign?.legB?.door.panelCount} (${flexLShapeDesign?.legB?.door.type})`}
+                    </strong>
+                  </div>
+                </div>
+              )}
+
               {/* Warning / fallback badge */}
               {isInfeasible && (
                 <div className="flex items-start gap-1.5 p-2 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[10px]">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
                   <span>
-                    Warning: Opening of {doorOpening}mm is narrow for requested sliding doors.
-                    Automated fallback is recommended.
+                    Opening of {doorOpening}mm is outside standard range for requested door type.
+                    Engineering fallback applied automatically.
                   </span>
                 </div>
               )}

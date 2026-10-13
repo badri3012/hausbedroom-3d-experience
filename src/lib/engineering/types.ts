@@ -128,7 +128,7 @@ export interface PoleLShapeDesign {
   shortFurnWidth: number;
   drawerCount: number;
   stackFits: boolean;
-  drawerLeg: "long" | "short" | null;
+  drawerLeg: "long" | "short" | "split" | null;
   drawerWidth: number | null;
   drawerWidthShort: number | null;
   drawerCountLong: number | null;
@@ -338,6 +338,32 @@ export interface FlexState {
   flexAddonLedLength: number;
   flexAddonSensor: number;
   depth?: number;
+}
+
+export interface FlexLShapeDesign {
+  valid: boolean;
+  warnings: string[];
+  legA?: {
+    outer: SideElementResult;
+    doorOpening: number;
+    door: FlexDoorResolution;
+    budget: number;
+  };
+  legB?: {
+    outer: SideElementResult;
+    doorOpening: number;
+    door: FlexDoorResolution;
+    budget: number;
+  };
+  roleA?: string;
+  roleB?: string;
+  propA?: FlexProposal | null;
+  propB?: FlexProposal | null;
+  doorHeight?: number;
+  pelmetHeight?: number;
+  basketTableQty?: number;
+  basketExtra?: number;
+  basketActualTotal?: number;
 }
 
 export interface FlexPriceResult {

@@ -713,7 +713,7 @@ export function computePoleLShape(s: PoleState): PoleLShapeDesign {
     );
   }
 
-  let drawerLeg: "long" | "short" | null = null;
+  let drawerLeg: "long" | "short" | "split" | null = null;
   let drawerWidth: number | null = null;
   let drawerWidthShort: number | null = null;
   let longFlexWidth: number | null = null;
@@ -744,20 +744,32 @@ export function computePoleLShape(s: PoleState): PoleLShapeDesign {
       shortFlexWidth = shortSingleColWidth;
     }
   } else {
-    // split drawer bank across both legs
-    const half = Math.ceil(drawerCount / 2);
-    drawerCountLong = half;
-    drawerCountShort = drawerCount - half;
-    drawerWidth = attemptDrawer(longLeg, longAvailAfterCorner);
-    if (shortCanSplit && shortAvailAfterCorner !== null) {
-      drawerWidthShort = attemptDrawer(shortLeg, shortAvailAfterCorner);
-    }
-    if (drawerWidth && drawerWidthShort) {
-      notes.push(`Drawer bank split across both legs: ${drawerCountLong} on long leg (${longLeg.name}), ${drawerCountShort} on short leg (${shortLeg.name}).`);
-      longFlexWidth = longAvailAfterCorner - drawerWidth;
-      shortFlexWidth = shortCanSplit && shortAvailAfterCorner !== null ? shortAvailAfterCorner - drawerWidthShort : null;
+    // Combined drawer count exceeds the 5-drawer single-column ergonomic limit — split the bank
+    // across both legs (one half-stack per leg) instead of dropping it entirely. (Ref HTML L1248-1271)
+    const halfLong = Math.ceil(drawerCount / 2);
+    const halfShort = Math.floor(drawerCount / 2);
+    const dwLong = attemptDrawer(longLeg, longAvailAfterCorner);
+    const dwShort = shortCanSplit && shortAvailAfterCorner !== null ? attemptDrawer(shortLeg, shortAvailAfterCorner) : null;
+    if (dwLong && dwShort && lsDrawerStackCheck(halfLong).fits && lsDrawerStackCheck(halfShort).fits) {
+      drawerLeg = "split";
+      drawerWidth = dwLong;
+      drawerWidthShort = dwShort;
+      drawerCountLong = halfLong;
+      drawerCountShort = halfShort;
+      longFlexWidth = longAvailAfterCorner - dwLong;
+      shortFlexWidth = null;
+      notes.push(
+        `${drawerCount} drawers exceeds the single-column limit (max 5), so the bank was split across both legs — ${halfLong} on Leg ${longLeg.name} (long), ${halfShort} on Leg ${shortLeg.name} (short) — instead of dropping it.`
+      );
     } else {
-      warnings.push("Drawer count requires splitting across legs, but one or both legs lack room for a drawer column — needs manual design.");
+      const reason = !shortCanSplit
+        ? "the short leg is too small to afford a second column to host its half"
+        : !dwLong
+        ? "no standard drawer width fits the long leg's available space"
+        : "no standard drawer width fits the short leg's available space";
+      warnings.push(
+        `${drawerCount} drawers exceeds the single-column ergonomic limit, and splitting across both legs isn't possible here (${reason}) — drawer bank dropped entirely. Needs manual design.`
+      );
       longFlexWidth = longAvailAfterCorner;
       shortFlexWidth = shortCanSplit ? shortAvailAfterCorner : shortSingleColWidth;
     }

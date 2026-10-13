@@ -243,6 +243,7 @@ export function useConfiguratorEngineering() {
     flexState,
     updateFlexState,
     flexDesign,
+    flexLShapeDesign,
     activeFlexProposal,
     flexPrice,
     quotationText,

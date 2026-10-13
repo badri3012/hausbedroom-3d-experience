@@ -42,23 +42,32 @@ export function ParametricPoleWardrobe({
   const internalHeight = poleDesign.internalHeight / 1000;
   const doorOpening = poleDesign.doorOpening / 1000;
   const pelmetHeight = poleDesign.pelmetHeight / 1000;
-  const doorHeight = poleDesign.door.height / 1000;
+  const doorHeight = (poleDesign.doorHeight || 2400) / 1000;
 
-  // Pole Finish Material (26mm round structural pole)
+  // Pole Finish Material (26mm round structural anodized aluminium pole)
   const poleColor = useMemo(() => {
-    if (poleState.poleFinish === "champagne") return "#C6B296";
-    if (poleState.poleFinish === "black") return "#1E1E1E";
-    return "#D8DCE0"; // Silver
+    if (poleState.poleFinish === "champagne") return "#C8B294";
+    if (poleState.poleFinish === "black") return "#1A1B1D";
+    return "#DCE1E7"; // Precision Anodized Silver
   }, [poleState.poleFinish]);
 
   const pbrPoleMat = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       color: poleColor,
-      roughness: poleState.poleFinish === "black" ? 0.45 : 0.25,
-      metalness: poleState.poleFinish === "black" ? 0.65 : 0.85,
-      envMapIntensity: 1.2,
+      roughness: poleState.poleFinish === "black" ? 0.32 : 0.18,
+      metalness: poleState.poleFinish === "black" ? 0.78 : 0.92,
+      envMapIntensity: 1.4,
     });
   }, [poleColor, poleState.poleFinish]);
+
+  const pbrClampMat = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: poleState.poleFinish === "black" ? "#111214" : "#B8BEC6",
+      roughness: 0.28,
+      metalness: 0.90,
+      envMapIntensity: 1.3,
+    });
+  }, [poleState.poleFinish]);
 
   // Wood shelf and carcass material
   const pbrWoodMat = useMemo(() => {
@@ -71,22 +80,13 @@ export function ParametricPoleWardrobe({
     });
   }, [woodMaterial, woodTexture]);
 
-  // Carcass backing
+  // Architectural wall backing behind open pole system
   const pbrBackWallMat = useMemo(() => {
     return new THREE.MeshStandardMaterial({
-      color: "#E2DDD5",
-      roughness: 0.90,
+      color: "#EAE5DC",
+      roughness: 0.88,
     });
   }, []);
-
-  const pbrFrameMat = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: frameMaterial.color,
-      roughness: frameMaterial.roughness,
-      metalness: frameMaterial.metalness,
-      envMapIntensity: 1.1,
-    });
-  }, [frameMaterial]);
 
   // Side element deductions
   const leftW = (poleDesign.sideL?.width ?? poleDesign.sideL?.internalW ?? 60) / 1000;
@@ -102,10 +102,26 @@ export function ParametricPoleWardrobe({
   const drawerBayIndex = poleDesign.internalLayout.drawerBayIndex;
   const drawerCount = poleDesign.drawerCount + (poleState.addonExtraDrawers || 0);
 
-  // Structural pole diameter: 26mm -> 0.026m
-  const poleRadius = 0.013;
+  // Structural pole diameter: 26mm -> 0.013m radius (rendered at 0.016m for crisp 3D legibility)
+  const poleRadius = 0.016;
+  const frontPoleZ = depth * 0.24;
+  const rearPoleZ = -depth * 0.34;
   const shelfThickness = 0.025;
-  const basePlinthHeight = 0.08;
+  const basePlinthHeight = 0.06;
+
+  // Collect all X positions where floor-to-ceiling twin poles stand (left boundary + each bay end)
+  const poleXPositions = useMemo(() => {
+    const xs: number[] = [internalStartX + 0.022];
+    bays.forEach((bay, idx) => {
+      const xEnd = internalStartX + bay.xEnd / 1000;
+      xs.push(idx === bays.length - 1 ? xEnd - 0.022 : xEnd);
+    });
+    return xs;
+  }, [bays, internalStartX]);
+
+  const topShelfY = basePlinthHeight + internalHeight - 0.36;
+  const midShelfY = basePlinthHeight + (internalHeight - 0.36) * 0.50;
+  const ledsActive = interactionState.shelfLedsOn || poleState.led;
 
   // Drawer open toggle helper
   const handleToggleDrawers = () => {
@@ -120,35 +136,19 @@ export function ParametricPoleWardrobe({
   return (
     <group position={[0, 0, 0]}>
       {/* ================================================================= */}
-      {/* 1. SIDE ELEMENTS & EXTERNAL CARCASS                               */}
+      {/* 1. SIDE PARTITIONS / WALL INFILLS & BACK WALL                     */}
       {/* ================================================================= */}
-      {/* Left Side Element */}
-      {poleDesign.sideL.kind === "partition" ? (
-        // 60mm Full Height Partition
-        <mesh position={[-totalWidth / 2 + leftW / 2, ceiling / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[leftW, ceiling, depth]} />
-          <primitive object={pbrWoodMat} attach="material" />
-        </mesh>
-      ) : (
-        // Wall Infill (50mm)
-        <mesh position={[-totalWidth / 2 + leftW / 2, ceiling / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[leftW, ceiling, depth]} />
-          <primitive object={pbrWoodMat} attach="material" />
-        </mesh>
-      )}
+      {/* Left Side Element (60mm Full-Height Partition or 50mm Wall Infill) */}
+      <mesh position={[-totalWidth / 2 + leftW / 2, ceiling / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[leftW, ceiling, depth]} />
+        <primitive object={pbrWoodMat} attach="material" />
+      </mesh>
 
       {/* Right Side Element */}
-      {poleDesign.sideR.kind === "partition" ? (
-        <mesh position={[totalWidth / 2 - rightW / 2, ceiling / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[rightW, ceiling, depth]} />
-          <primitive object={pbrWoodMat} attach="material" />
-        </mesh>
-      ) : (
-        <mesh position={[totalWidth / 2 - rightW / 2, ceiling / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[rightW, ceiling, depth]} />
-          <primitive object={pbrWoodMat} attach="material" />
-        </mesh>
-      )}
+      <mesh position={[totalWidth / 2 - rightW / 2, ceiling / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[rightW, ceiling, depth]} />
+        <primitive object={pbrWoodMat} attach="material" />
+      </mesh>
 
       {/* Ceiling Beam Box if Left Beam */}
       {poleState.left.type === "beam" && (
@@ -168,37 +168,82 @@ export function ParametricPoleWardrobe({
         </mesh>
       )}
 
-      {/* Base Plinth / Floor Floorboard */}
-      <mesh position={[internalCenterX, basePlinthHeight / 2, -0.01]} receiveShadow>
-        <boxGeometry args={[internalWidth, basePlinthHeight, depth - 0.04]} />
-        <primitive object={pbrWoodMat} attach="material" />
-      </mesh>
-
-      {/* Back Panel */}
+      {/* Rear Wall Plane */}
       <mesh
-        position={[internalCenterX, internalHeight / 2 + basePlinthHeight / 2, -depth / 2 + 0.008]}
+        position={[internalCenterX, ceiling / 2, -depth / 2 + 0.006]}
         receiveShadow
       >
-        <boxGeometry args={[internalWidth, internalHeight, 0.016]} />
+        <boxGeometry args={[internalWidth, ceiling, 0.012]} />
         <primitive object={pbrBackWallMat} attach="material" />
       </mesh>
 
-      {/* Top Header Shelf / Cap Panel */}
-      <mesh
-        position={[
-          internalCenterX,
-          basePlinthHeight + internalHeight - shelfThickness / 2,
-          -0.01,
-        ]}
-        castShadow
-        receiveShadow
-      >
-        <boxGeometry args={[internalWidth, shelfThickness, depth - 0.04]} />
-        <primitive object={pbrWoodMat} attach="material" />
-      </mesh>
+      {/* ================================================================= */}
+      {/* 2. FLOOR-TO-CEILING 26MM ANODIZED ALUMINIUM TWIN-POLE STANCHIONS  */}
+      {/* ================================================================= */}
+      {poleXPositions.map((px, pIdx) => (
+        <group key={`twin-pole-stanchion-${pIdx}`} position={[px, 0, 0]}>
+          {/* Front Floor-to-Ceiling 26mm Structural Pole */}
+          <mesh position={[0, ceiling / 2, frontPoleZ]} castShadow>
+            <cylinderGeometry args={[poleRadius, poleRadius, ceiling, 24]} />
+            <primitive object={pbrPoleMat} attach="material" />
+          </mesh>
+          {/* Rear Floor-to-Ceiling 26mm Structural Pole */}
+          <mesh position={[0, ceiling / 2, rearPoleZ]} castShadow>
+            <cylinderGeometry args={[poleRadius, poleRadius, ceiling, 24]} />
+            <primitive object={pbrPoleMat} attach="material" />
+          </mesh>
+
+          {/* Floor Adjuster Foot Flanges */}
+          <mesh position={[0, 0.012, frontPoleZ]} castShadow>
+            <cylinderGeometry args={[poleRadius * 1.9, poleRadius * 2.1, 0.024, 20]} />
+            <primitive object={pbrClampMat} attach="material" />
+          </mesh>
+          <mesh position={[0, 0.012, rearPoleZ]} castShadow>
+            <cylinderGeometry args={[poleRadius * 1.9, poleRadius * 2.1, 0.024, 20]} />
+            <primitive object={pbrClampMat} attach="material" />
+          </mesh>
+
+          {/* Ceiling Compression Jack Flanges */}
+          <mesh position={[0, ceiling - 0.014, frontPoleZ]} castShadow>
+            <cylinderGeometry args={[poleRadius * 2.1, poleRadius * 1.9, 0.028, 20]} />
+            <primitive object={pbrClampMat} attach="material" />
+          </mesh>
+          <mesh position={[0, ceiling - 0.014, rearPoleZ]} castShadow>
+            <cylinderGeometry args={[poleRadius * 2.1, poleRadius * 1.9, 0.028, 20]} />
+            <primitive object={pbrClampMat} attach="material" />
+          </mesh>
+
+          {/* Horizontal Front-to-Rear Pole Stabilizer Cross-Bars & Collar Clamps */}
+          {[topShelfY, midShelfY, basePlinthHeight + 0.02].map((braceY, bIdx) => (
+            <group key={`pole-brace-${pIdx}-${bIdx}`} position={[0, braceY - shelfThickness / 2, 0]}>
+              {/* Cross-brace rod between front and rear pole */}
+              <mesh
+                position={[0, 0, (frontPoleZ + rearPoleZ) / 2]}
+                rotation={[Math.PI / 2, 0, 0]}
+                castShadow
+              >
+                <cylinderGeometry
+                  args={[poleRadius * 0.65, poleRadius * 0.65, frontPoleZ - rearPoleZ, 14]}
+                />
+                <primitive object={pbrClampMat} attach="material" />
+              </mesh>
+              {/* Die-cast Clamp Collar on Front Pole */}
+              <mesh position={[0, 0, frontPoleZ]}>
+                <cylinderGeometry args={[poleRadius * 1.45, poleRadius * 1.45, 0.032, 18]} />
+                <primitive object={pbrClampMat} attach="material" />
+              </mesh>
+              {/* Die-cast Clamp Collar on Rear Pole */}
+              <mesh position={[0, 0, rearPoleZ]}>
+                <cylinderGeometry args={[poleRadius * 1.45, poleRadius * 1.45, 0.032, 18]} />
+                <primitive object={pbrClampMat} attach="material" />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      ))}
 
       {/* ================================================================= */}
-      {/* 2. DYNAMIC BAYS & STRUCTURAL 26MM POLES                           */}
+      {/* 3. DYNAMIC BAYS: SHELVES, DRAWER STACK, RODS & ADD-ONS            */}
       {/* ================================================================= */}
       {bays.map((bay, bayIdx) => {
         const bayW = bay.width / 1000;
@@ -210,56 +255,40 @@ export function ParametricPoleWardrobe({
 
         return (
           <group key={`pole-bay-${bayIdx}`}>
-            {/* Structural Pole on Right Boundary of Bay (except far right outer wall) */}
-            {bayIdx < bays.length - 1 && (
-              <mesh position={[bayEndX, ceiling / 2, depth / 2 - 0.06]} castShadow>
-                <cylinderGeometry args={[poleRadius, poleRadius, ceiling, 24]} />
-                <primitive object={pbrPoleMat} attach="material" />
-              </mesh>
-            )}
-
-            {/* Rear Structural Pole matching front pole */}
-            {bayIdx < bays.length - 1 && (
-              <mesh position={[bayEndX, internalHeight / 2 + basePlinthHeight, -depth / 4]} castShadow>
-                <cylinderGeometry
-                  args={[poleRadius * 0.85, poleRadius * 0.85, internalHeight, 20]}
-                />
-                <primitive object={pbrPoleMat} attach="material" />
-              </mesh>
-            )}
-
-            {/* Top Shelf in Bay */}
+            {/* Top Luggage Shelf Clamped Between Poles */}
             <mesh
-              position={[
-                bayCenterX,
-                basePlinthHeight + internalHeight - 0.40,
-                -0.02,
-              ]}
+              position={[bayCenterX, topShelfY, -0.03]}
               castShadow
               receiveShadow
             >
-              <boxGeometry args={[bayW - 0.02, shelfThickness, depth - 0.06]} />
+              <boxGeometry args={[bayW - 0.036, shelfThickness, depth - 0.10]} />
               <primitive object={pbrWoodMat} attach="material" />
             </mesh>
 
-            {/* Upper LED Light Strip Under Top Shelf */}
-            {interactionState.shelfLedsOn && (
-              <pointLight
-                position={[bayCenterX, basePlinthHeight + internalHeight - 0.43, 0.05]}
-                intensity={0.65}
-                distance={1.6}
-                color="#FFF1DE"
-              />
+            {/* Warm Linear LED Strip Under Top Shelf */}
+            {ledsActive && (
+              <group position={[bayCenterX, topShelfY - shelfThickness / 2 - 0.003, 0.04]}>
+                <mesh>
+                  <boxGeometry args={[bayW - 0.08, 0.005, 0.014]} />
+                  <meshBasicMaterial color="#FFF4DF" />
+                </mesh>
+                <pointLight
+                  position={[0, -0.04, 0.02]}
+                  intensity={0.75}
+                  distance={1.8}
+                  color="#FFF1D6"
+                />
+              </group>
             )}
 
             {/* Content within Bay */}
             {isDrawerBay ? (
-              // DRAWER STACK
+              // DRAWER STACK BAY
               <group position={[bayCenterX, basePlinthHeight, 0]}>
-                {/* Drawer Bank Casing Box */}
-                <mesh position={[0, (drawerCount * 0.20) / 2 + 0.02, -0.02]} receiveShadow>
+                {/* Drawer Bank Outer Casing Box Clamped to Poles */}
+                <mesh position={[0, (drawerCount * 0.20) / 2 + 0.02, -0.03]} castShadow receiveShadow>
                   <boxGeometry
-                    args={[Math.min(bayW - 0.02, 0.82), drawerCount * 0.20 + 0.04, depth - 0.06]}
+                    args={[Math.min(bayW - 0.036, 0.82), drawerCount * 0.20 + 0.04, depth - 0.10]}
                   />
                   <primitive object={pbrWoodMat} attach="material" />
                 </mesh>
@@ -268,7 +297,7 @@ export function ParametricPoleWardrobe({
                 {Array.from({ length: Math.min(6, drawerCount) }).map((_, dIdx) => {
                   const dHeight = 0.18;
                   const dY = 0.02 + dIdx * 0.19 + dHeight / 2;
-                  const dWidth = Math.min(bayW - 0.04, 0.80);
+                  const dWidth = Math.min(bayW - 0.056, 0.80);
                   const isOpen =
                     dIdx === 0
                       ? interactionState.topDrawerOpen || interactionState.drawersOpen
@@ -283,8 +312,8 @@ export function ParametricPoleWardrobe({
                       name={`Drawer ${dIdx + 1}`}
                       width={dWidth}
                       height={dHeight}
-                      depth={depth - 0.10}
-                      position={[0, dY, 0.02]}
+                      depth={depth - 0.14}
+                      position={[0, dY, 0.01]}
                       isOpen={isOpen}
                       onToggle={handleToggleDrawers}
                       woodMaterial={woodMaterial}
@@ -296,27 +325,21 @@ export function ParametricPoleWardrobe({
                   );
                 })}
 
-                {/* Storage accessories above drawers */}
-                <group position={[0, drawerCount * 0.20 + 0.08, 0]}>
+                {/* Folded linens on top of drawer bank */}
+                <group position={[0, drawerCount * 0.20 + 0.06, -0.02]}>
                   <FoldedTowels
-                    position={[-bayW * 0.22, 0, 0]}
+                    position={[-bayW * 0.20, 0, 0]}
                     color="#EFEAE1"
                     count={3}
                   />
-                  <RolledTowel position={[bayW * 0.20, 0.03, 0.04]} color="#EFEAE1" />
+                  <RolledTowel position={[bayW * 0.18, 0.03, 0.04]} color="#E4DDD3" />
                 </group>
 
-                {/* Hanging rail above drawer storage */}
+                {/* Hanging rail above drawer stack */}
                 {poleState.hangingRod && (
-                  <group
-                    position={[
-                      0,
-                      basePlinthHeight + internalHeight - 0.50,
-                      0,
-                    ]}
-                  >
+                  <group position={[0, topShelfY - basePlinthHeight - 0.08, -0.02]}>
                     <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-                      <cylinderGeometry args={[0.012, 0.012, bayW - 0.04, 16]} />
+                      <cylinderGeometry args={[0.013, 0.013, bayW - 0.03, 18]} />
                       <primitive object={pbrPoleMat} attach="material" />
                     </mesh>
                     <GarmentHanger
@@ -333,58 +356,75 @@ export function ParametricPoleWardrobe({
                 )}
               </group>
             ) : (
-              // HANGING / SHELVING BAY
+              // HANGING & SHELVING BAY
               <group position={[bayCenterX, 0, 0]}>
-                {/* Intermediate Shelf */}
+                {/* Intermediate Pole-Clamped Shelf */}
                 <mesh
-                  position={[0, basePlinthHeight + (internalHeight - 0.40) / 2, -0.02]}
+                  position={[0, midShelfY, -0.03]}
                   castShadow
                   receiveShadow
                 >
-                  <boxGeometry args={[bayW - 0.02, shelfThickness, depth - 0.06]} />
+                  <boxGeometry args={[bayW - 0.036, shelfThickness, depth - 0.10]} />
                   <primitive object={pbrWoodMat} attach="material" />
                 </mesh>
 
-                {/* Upper Hanging Rod */}
-                <group position={[0, basePlinthHeight + internalHeight - 0.50, 0]}>
-                  <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-                    <cylinderGeometry args={[0.012, 0.012, bayW - 0.04, 16]} />
-                    <primitive object={pbrPoleMat} attach="material" />
-                  </mesh>
-                  {/* Hangers */}
-                  <GarmentHanger
-                    type="suit"
-                    color="#1F2327"
-                    position={[-bayW * 0.25, -0.02, 0]}
-                  />
-                  <GarmentHanger
-                    type="shirt"
-                    color="#EAE6DF"
-                    position={[-bayW * 0.08, -0.02, 0]}
-                  />
-                  <GarmentHanger
-                    type="coat"
-                    color="#4A3B32"
-                    position={[bayW * 0.12, -0.02, 0]}
-                  />
-                  <GarmentHanger
-                    type="dress"
-                    color="#8C2D38"
-                    position={[bayW * 0.28, -0.02, 0]}
-                  />
-                </group>
+                {/* Bottom Pole-Clamped Shoe/Storage Shelf */}
+                <mesh
+                  position={[0, basePlinthHeight + 0.02, -0.03]}
+                  castShadow
+                  receiveShadow
+                >
+                  <boxGeometry args={[bayW - 0.036, shelfThickness, depth - 0.10]} />
+                  <primitive object={pbrWoodMat} attach="material" />
+                </mesh>
 
-                {/* Lower Hanging Rod or Storage Boxes */}
-                {bayIdx % 2 === 0 ? (
-                  <group
-                    position={[
-                      0,
-                      basePlinthHeight + (internalHeight - 0.40) / 2 - 0.10,
-                      0,
-                    ]}
-                  >
+                {/* Upper Hanging Rod Clamped Between Poles */}
+                {poleState.hangingRod && (
+                  <group position={[0, topShelfY - 0.08, -0.02]}>
                     <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-                      <cylinderGeometry args={[0.012, 0.012, bayW - 0.04, 16]} />
+                      <cylinderGeometry args={[0.013, 0.013, bayW - 0.03, 18]} />
+                      <primitive object={pbrPoleMat} attach="material" />
+                    </mesh>
+                    <GarmentHanger
+                      type="suit"
+                      color="#1F2327"
+                      position={[-bayW * 0.24, -0.02, 0]}
+                    />
+                    <GarmentHanger
+                      type="shirt"
+                      color="#EAE6DF"
+                      position={[-bayW * 0.08, -0.02, 0]}
+                    />
+                    <GarmentHanger
+                      type="coat"
+                      color="#4A3B32"
+                      position={[bayW * 0.10, -0.02, 0]}
+                    />
+                    <GarmentHanger
+                      type="dress"
+                      color="#8C2D38"
+                      position={[bayW * 0.25, -0.02, 0]}
+                    />
+                  </group>
+                )}
+
+                {/* Lower Zone: Addon Baskets / Trouser Rack / Lower Hanging / Boxes */}
+                {poleState.addonWireBasket > 0 && bayIdx === (drawerBayIndex === 0 ? 1 : 0) ? (
+                  <group position={[0, basePlinthHeight + 0.18, -0.02]}>
+                    {Array.from({ length: Math.min(3, poleState.addonWireBasket) }).map((_, bIdx) => (
+                      <group key={`pole-addon-basket-${bIdx}`} position={[0, bIdx * 0.22, 0]}>
+                        <mesh castShadow>
+                          <boxGeometry args={[bayW - 0.06, 0.12, depth - 0.14]} />
+                          <primitive object={pbrClampMat} attach="material" />
+                        </mesh>
+                        <FoldedTowels position={[0, 0.02, 0]} color="#EFECE6" count={2} />
+                      </group>
+                    ))}
+                  </group>
+                ) : bayIdx % 2 === 0 && poleState.hangingRod ? (
+                  <group position={[0, midShelfY - 0.08, -0.02]}>
+                    <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+                      <cylinderGeometry args={[0.013, 0.013, bayW - 0.03, 18]} />
                       <primitive object={pbrPoleMat} attach="material" />
                     </mesh>
                     <GarmentHanger
@@ -404,31 +444,58 @@ export function ParametricPoleWardrobe({
                     />
                   </group>
                 ) : (
-                  <group position={[0, basePlinthHeight + 0.12, 0]}>
+                  <group position={[0, basePlinthHeight + 0.15, -0.03]}>
                     <StorageBox
-                      position={[-bayW * 0.22, 0, 0]}
-                      width={0.28}
+                      position={[-bayW * 0.20, 0, 0]}
+                      width={Math.min(0.28, bayW * 0.38)}
                       height={0.22}
-                      depth={0.38}
+                      depth={0.36}
                       color="#D6CEBE"
                     />
                     <StorageBox
-                      position={[bayW * 0.22, 0, 0]}
-                      width={0.28}
+                      position={[bayW * 0.20, 0, 0]}
+                      width={Math.min(0.28, bayW * 0.38)}
                       height={0.22}
-                      depth={0.38}
+                      depth={0.36}
                       color="#323335"
                     />
                   </group>
                 )}
               </group>
             )}
+
+            {/* Top Luggage Shelf Items */}
+            <group position={[bayCenterX, topShelfY + shelfThickness / 2 + 0.10, -0.03]}>
+              <StorageBox
+                position={[0, 0, 0]}
+                width={Math.min(0.36, bayW * 0.55)}
+                height={0.18}
+                depth={0.34}
+                color={bayIdx % 2 === 0 ? "#DED8CE" : "#4A4845"}
+              />
+            </group>
           </group>
         );
       })}
 
+      {/* Optional Rotating Dressing Mirror Add-On */}
+      {(poleState.addonFullMirror > 0 ||
+        poleState.addonBoxMirror > 0 ||
+        poleState.addonFlipMirror > 0) && (
+        <group position={[internalEndX - 0.06, ceiling * 0.48, 0.04]} rotation={[0, -0.35, 0]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.02, 1.15, 0.34]} />
+            <primitive object={pbrClampMat} attach="material" />
+          </mesh>
+          <mesh position={[-0.012, 0, 0]}>
+            <planeGeometry args={[0.30, 1.10]} />
+            <meshStandardMaterial color="#E8F0F5" roughness={0.05} metalness={0.96} />
+          </mesh>
+        </group>
+      )}
+
       {/* ================================================================= */}
-      {/* 3. PARAMETRIC DOORS                                               */}
+      {/* 4. PARAMETRIC DOORS                                               */}
       {/* ================================================================= */}
       {poleState.doorRequired && (
         <ParametricDoors

@@ -50,23 +50,34 @@ export function ParametricFlexWardrobe({
 
   const sectionWidths = activeProposal.widths; // e.g. [762, 762, 609, 609, 550] in mm
   const totalModuleWidth = activeProposal.combo.total / 1000;
+  const doorHeight = (flexDesign.doorHeight || 2400) / 1000;
+  const pelmetHeight = (flexDesign.pelmetHeight || Math.max(0, flexState.ceiling - 2400)) / 1000;
 
-  // PBR Metal Structural Finish (Anodized Architectural Aluminum / Steel)
+  // PBR SPCC Powder-Coated Steel Structural Finishes
   const pbrSteelMat = useMemo(() => {
     return new THREE.MeshStandardMaterial({
-      color: "#2C2D30",
-      roughness: 0.38,
+      color: "#22252A", // Architectural Anthracite SPCC Powder-Coated Steel
+      roughness: 0.30,
       metalness: 0.88,
+      envMapIntensity: 1.3,
+    });
+  }, []);
+
+  const pbrPowderShelfMat = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: "#F2F0EC", // Crisp matte satin white/alabaster powder-coated SPCC steel shelf
+      roughness: 0.36,
+      metalness: 0.45,
       envMapIntensity: 1.1,
     });
   }, []);
 
   const pbrChromeMat = useMemo(() => {
     return new THREE.MeshStandardMaterial({
-      color: "#E0E3E8",
-      roughness: 0.20,
-      metalness: 0.95,
-      envMapIntensity: 1.2,
+      color: "#DCE2E8",
+      roughness: 0.18,
+      metalness: 0.94,
+      envMapIntensity: 1.4,
     });
   }, []);
 
@@ -82,8 +93,8 @@ export function ParametricFlexWardrobe({
 
   const pbrBackWallMat = useMemo(() => {
     return new THREE.MeshStandardMaterial({
-      color: "#E6E2DB",
-      roughness: 0.92,
+      color: "#E5E0D8",
+      roughness: 0.90,
     });
   }, []);
 
@@ -94,11 +105,12 @@ export function ParametricFlexWardrobe({
   const internalEndX = totalWidth / 2 - rightW;
   const internalCenterX = (internalStartX + internalEndX) / 2;
 
-  // Post & panel profiles
-  const uprightPostW = 0.038; // 38mm slotted upright
-  const uprightPostD = 0.038;
-  const shelfThickness = 0.022;
+  // SPCC Twin-Slot Wall Upright & Cantilever Profiles
+  const uprightPostW = 0.034; // 34mm heavy-duty twin-slot wall upright
+  const shelfThickness = 0.018; // Slim 18mm folded SPCC steel shelf deck
   const systemHeight = Math.min(2.70, ceiling - 0.06);
+  const rearWallZ = -depth / 2 + 0.012;
+  const uprightZ = rearWallZ + 0.022;
 
   // Remaining clearance gap (centered)
   const remainingGap = Math.max(0, internalWidth - totalModuleWidth);
@@ -107,40 +119,49 @@ export function ParametricFlexWardrobe({
   return (
     <group position={[0, 0, 0]}>
       {/* ================================================================= */}
-      {/* 1. OUTER CARCASS & SIDE SUPPORTS                                  */}
+      {/* 1. OUTER SIDE INFILLS & REAR STRUCTURAL WALL                      */}
       {/* ================================================================= */}
-      {/* Left Infill / Partition */}
+      {/* Left Side Partition / Infill */}
       <mesh position={[-totalWidth / 2 + leftW / 2, ceiling / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[leftW, ceiling, depth]} />
         <primitive object={pbrWoodMat} attach="material" />
       </mesh>
 
-      {/* Right Infill / Partition */}
+      {/* Right Side Partition / Infill */}
       <mesh position={[totalWidth / 2 - rightW / 2, ceiling / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[rightW, ceiling, depth]} />
         <primitive object={pbrWoodMat} attach="material" />
       </mesh>
 
-      {/* Rear Structural Wall */}
-      <mesh position={[internalCenterX, ceiling / 2, -depth / 2 + 0.008]} receiveShadow>
-        <boxGeometry args={[internalWidth, ceiling, 0.016]} />
+      {/* Rear Wall Mounting Surface */}
+      <mesh position={[internalCenterX, ceiling / 2, rearWallZ - 0.006]} receiveShadow>
+        <boxGeometry args={[internalWidth, ceiling, 0.012]} />
         <primitive object={pbrBackWallMat} attach="material" />
       </mesh>
 
-      {/* Floor Runner Plinth */}
-      <mesh position={[internalCenterX, 0.025, 0]} receiveShadow>
-        <boxGeometry args={[internalWidth, 0.05, depth - 0.04]} />
-        <primitive object={pbrWoodMat} attach="material" />
-      </mesh>
-
-      {/* Top Header Fascia */}
-      <mesh position={[internalCenterX, systemHeight + 0.015, -0.01]} castShadow receiveShadow>
-        <boxGeometry args={[internalWidth, 0.03, depth - 0.06]} />
-        <primitive object={pbrWoodMat} attach="material" />
-      </mesh>
+      {/* ================================================================= */}
+      {/* 2. TOP-HUNG HORIZONTAL SPCC STEEL MOUNTING TRACK                  */}
+      {/* ================================================================= */}
+      <group position={[internalCenterX, systemHeight - 0.02, uprightZ]}>
+        {/* Main Heavy-Duty Top Hang-Track Rail */}
+        <mesh castShadow>
+          <boxGeometry args={[totalModuleWidth + 0.06, 0.052, 0.028]} />
+          <primitive object={pbrSteelMat} attach="material" />
+        </mesh>
+        {/* Chrome Anchor Bolts Along Top Track */}
+        {Array.from({ length: sectionWidths.length + 1 }).map((_, bIdx) => {
+          const bx = -totalModuleWidth / 2 + (totalModuleWidth / Math.max(1, sectionWidths.length)) * bIdx;
+          return (
+            <mesh key={`track-bolt-${bIdx}`} position={[bx, 0, 0.016]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.007, 0.007, 0.008, 12]} />
+              <primitive object={pbrChromeMat} attach="material" />
+            </mesh>
+          );
+        })}
+      </group>
 
       {/* ================================================================= */}
-      {/* 2. MODULAR SECTIONS (550 / 609 / 762 mm)                          */}
+      {/* 3. WALL-MOUNTED MODULAR SECTIONS (550 / 609 / 762 mm)             */}
       {/* ================================================================= */}
       {(() => {
         let currentX = modulesStartX;
@@ -153,66 +174,109 @@ export function ParametricFlexWardrobe({
 
           // Wire basket allocation in this section
           const basketCount = activeProposal.basketCounts?.[idx] || 0;
+          const shelfDepth = depth - 0.10;
+          const shelfCenterZ = uprightZ + shelfDepth / 2 + 0.01;
+
+          // Helper to render a Twin-Slot Wall Upright at X
+          const renderTwinSlotUpright = (ux: number, keyPrefix: string) => (
+            <group key={keyPrefix} position={[ux, systemHeight / 2 + 0.04, uprightZ]}>
+              {/* Main Vertical Steel Channel */}
+              <mesh castShadow>
+                <boxGeometry args={[uprightPostW, systemHeight - 0.08, 0.026]} />
+                <primitive object={pbrSteelMat} attach="material" />
+              </mesh>
+              {/* Twin Vertical Slot Channels (High-Contrast Perforation Detail) */}
+              <mesh position={[-0.006, 0, 0.014]}>
+                <boxGeometry args={[0.004, systemHeight - 0.14, 0.002]} />
+                <primitive object={pbrChromeMat} attach="material" />
+              </mesh>
+              <mesh position={[0.006, 0, 0.014]}>
+                <boxGeometry args={[0.004, systemHeight - 0.14, 0.002]} />
+                <primitive object={pbrChromeMat} attach="material" />
+              </mesh>
+            </group>
+          );
+
+          // Helper to render a Cantilevered SPCC Steel Shelf with Side Brackets
+          const renderCantileverShelf = (sy: number, keyPrefix: string) => (
+            <group key={keyPrefix} position={[secCenterX, sy, shelfCenterZ]}>
+              {/* Powder-Coated SPCC Steel Shelf Deck */}
+              <mesh castShadow receiveShadow>
+                <boxGeometry args={[secW - 0.012, shelfThickness, shelfDepth]} />
+                <primitive object={pbrPowderShelfMat} attach="material" />
+              </mesh>
+              {/* Anthracite Steel Front Bullnose Lip */}
+              <mesh position={[0, 0, shelfDepth / 2 + 0.004]} castShadow>
+                <boxGeometry args={[secW - 0.008, shelfThickness + 0.006, 0.010]} />
+                <primitive object={pbrSteelMat} attach="material" />
+              </mesh>
+              {/* Left & Right Tapered Cantilever Steel Brackets Projecting from Rear Upright */}
+              <mesh position={[-secW / 2 + 0.014, -0.028, -0.01]} castShadow>
+                <boxGeometry args={[0.012, 0.048, shelfDepth - 0.02]} />
+                <primitive object={pbrSteelMat} attach="material" />
+              </mesh>
+              <mesh position={[secW / 2 - 0.014, -0.028, -0.01]} castShadow>
+                <boxGeometry args={[0.012, 0.048, shelfDepth - 0.02]} />
+                <primitive object={pbrSteelMat} attach="material" />
+              </mesh>
+            </group>
+          );
+
+          const topShelfY = systemHeight - 0.34;
+          const midShelfY = systemHeight * 0.52;
+          const lowShelfY = 0.16;
 
           return (
             <group key={`flex-section-${idx}`}>
-              {/* Slotted Metal Upright at Section Left Border */}
-              <mesh position={[secStartX, systemHeight / 2 + 0.05, depth / 2 - 0.06]} castShadow>
-                <boxGeometry args={[uprightPostW, systemHeight, uprightPostD]} />
-                <primitive object={pbrSteelMat} attach="material" />
-              </mesh>
-              {/* Slotted Slots Graphic Indent */}
-              <mesh position={[secStartX, systemHeight / 2 + 0.05, depth / 2 - 0.039]}>
-                <boxGeometry args={[0.012, systemHeight * 0.95, 0.002]} />
-                <meshBasicMaterial color="#151515" />
-              </mesh>
+              {/* Left Wall-Mounted Twin-Slot Upright */}
+              {renderTwinSlotUpright(secStartX, `upright-left-${idx}`)}
 
-              {/* Rear Wall Bracket Upright */}
-              <mesh position={[secStartX, systemHeight / 2 + 0.05, -depth / 2 + 0.03]} castShadow>
-                <boxGeometry args={[uprightPostW, systemHeight, 0.024]} />
-                <primitive object={pbrSteelMat} attach="material" />
-              </mesh>
+              {/* Right Wall-Mounted Twin-Slot Upright on Final Section */}
+              {idx === sectionWidths.length - 1 &&
+                renderTwinSlotUpright(secEndX, `upright-right-${idx}`)}
 
-              {/* Final right upright on last section */}
-              {idx === sectionWidths.length - 1 && (
-                <mesh position={[secEndX, systemHeight / 2 + 0.05, depth / 2 - 0.06]} castShadow>
-                  <boxGeometry args={[uprightPostW, systemHeight, uprightPostD]} />
-                  <primitive object={pbrSteelMat} attach="material" />
-                </mesh>
+              {/* Top Cantilevered Shelf */}
+              {renderCantileverShelf(topShelfY, `shelf-top-${idx}`)}
+
+              {/* Mid Cantilevered Shelf */}
+              {renderCantileverShelf(midShelfY, `shelf-mid-${idx}`)}
+
+              {/* Optional LED Strip Under Top Shelf */}
+              {interactionState.shelfLedsOn && (
+                <pointLight
+                  position={[secCenterX, topShelfY - 0.05, 0.05]}
+                  intensity={0.70}
+                  distance={1.6}
+                  color="#FFF3E0"
+                />
               )}
 
-              {/* Top Modular Shelf */}
-              <group position={[secCenterX, systemHeight - 0.35, -0.02]}>
-                <mesh castShadow receiveShadow>
-                  <boxGeometry args={[secW - 0.015, shelfThickness, depth - 0.08]} />
-                  <primitive object={pbrWoodMat} attach="material" />
-                </mesh>
-                {/* Steel Support Bracket Arms */}
-                <mesh position={[-secW / 2 + 0.02, -0.04, 0]} castShadow>
-                  <boxGeometry args={[0.015, 0.08, depth - 0.12]} />
+              {/* Top Shelf Storage Box */}
+              <StorageBox
+                position={[secCenterX, topShelfY + shelfThickness / 2 + 0.10, shelfCenterZ]}
+                width={Math.min(0.36, secW * 0.60)}
+                height={0.18}
+                depth={0.34}
+                color={idx % 2 === 0 ? "#2D3034" : "#DBD5CA"}
+              />
+
+              {/* Upper Cantilevered Hanging Rail (Suspended by J-Brackets) */}
+              <group position={[secCenterX, topShelfY - 0.10, shelfCenterZ]}>
+                {/* Left & Right J-Hanger Drop Brackets */}
+                <mesh position={[-secW / 2 + 0.04, 0.045, 0]} castShadow>
+                  <boxGeometry args={[0.010, 0.09, 0.018]} />
                   <primitive object={pbrSteelMat} attach="material" />
                 </mesh>
-                <mesh position={[secW / 2 - 0.02, -0.04, 0]} castShadow>
-                  <boxGeometry args={[0.015, 0.08, depth - 0.12]} />
+                <mesh position={[secW / 2 - 0.04, 0.045, 0]} castShadow>
+                  <boxGeometry args={[0.010, 0.09, 0.018]} />
                   <primitive object={pbrSteelMat} attach="material" />
                 </mesh>
-              </group>
-
-              {/* Mid Modular Shelf */}
-              <group position={[secCenterX, systemHeight / 2 - 0.05, -0.02]}>
-                <mesh castShadow receiveShadow>
-                  <boxGeometry args={[secW - 0.015, shelfThickness, depth - 0.08]} />
-                  <primitive object={pbrWoodMat} attach="material" />
-                </mesh>
-              </group>
-
-              {/* Upper Hanging Rail */}
-              <group position={[secCenterX, systemHeight - 0.45, 0]}>
+                {/* Chrome Hanging Rod */}
                 <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-                  <cylinderGeometry args={[0.012, 0.012, secW - 0.03, 16]} />
+                  <cylinderGeometry args={[0.013, 0.013, secW - 0.016, 18]} />
                   <primitive object={pbrChromeMat} attach="material" />
                 </mesh>
-                {/* Clothes */}
+                {/* Garments */}
                 <GarmentHanger
                   type="suit"
                   color="#26282B"
@@ -232,20 +296,30 @@ export function ParametricFlexWardrobe({
                 )}
               </group>
 
-              {/* Lower Section: Wire Baskets or Lower Hanging */}
+              {/* Lower Zone: Pull-Out Metallic Wire Mesh Baskets OR Double Hanging / Multi-Shelf */}
               {basketCount > 0 ? (
-                // WIRE BASKETS STACK
-                <group position={[secCenterX, 0.08, 0]}>
+                <group position={[secCenterX, 0.14, shelfCenterZ]}>
                   {Array.from({ length: Math.min(4, basketCount) }).map((_, bIdx) => {
-                    const bY = bIdx * 0.22 + 0.10;
-                    const isOpen = interactionState.drawersOpen;
+                    const bY = bIdx * 0.22 + 0.08;
+                    const isOpen =
+                      interactionState.drawersOpen ||
+                      (bIdx === 0 && interactionState.topDrawerOpen) ||
+                      (bIdx === 1 && interactionState.bottomDrawerOpen);
                     return (
                       <WireBasketModule
                         key={`basket-${idx}-${bIdx}`}
-                        width={secW - 0.05}
-                        depth={depth - 0.12}
+                        width={secW - 0.036}
+                        depth={shelfDepth - 0.02}
                         y={bY}
                         isOpen={isOpen}
+                        onToggle={() => {
+                          const next = !interactionState.drawersOpen;
+                          onUpdateState({
+                            drawersOpen: next,
+                            topDrawerOpen: next,
+                            bottomDrawerOpen: next,
+                          });
+                        }}
                         pbrChromeMat={pbrChromeMat}
                         pbrSteelMat={pbrSteelMat}
                       />
@@ -253,12 +327,12 @@ export function ParametricFlexWardrobe({
                   })}
                 </group>
               ) : (
-                // LOWER HANGING OR ACCENTS
-                <group position={[secCenterX, 0.08, 0]}>
+                <group>
+                  {renderCantileverShelf(lowShelfY, `shelf-low-${idx}`)}
                   {idx % 2 === 0 ? (
-                    <group position={[0, systemHeight / 2 - 0.20, 0]}>
+                    <group position={[secCenterX, midShelfY - 0.10, shelfCenterZ]}>
                       <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-                        <cylinderGeometry args={[0.012, 0.012, secW - 0.03, 16]} />
+                        <cylinderGeometry args={[0.013, 0.013, secW - 0.016, 18]} />
                         <primitive object={pbrChromeMat} attach="material" />
                       </mesh>
                       <GarmentHanger
@@ -273,15 +347,21 @@ export function ParametricFlexWardrobe({
                       />
                     </group>
                   ) : (
-                    <group position={[0, 0.12, 0]}>
-                      <StorageBox
-                        position={[0, 0, 0]}
-                        width={secW - 0.08}
-                        height={0.22}
-                        depth={depth - 0.16}
-                        color="#44464A"
+                    <>
+                      {renderCantileverShelf((midShelfY + lowShelfY) / 2, `shelf-sub-${idx}`)}
+                      <FoldedTowels
+                        position={[secCenterX - secW * 0.15, (midShelfY + lowShelfY) / 2 + 0.02, shelfCenterZ]}
+                        color="#EAE5DC"
+                        count={3}
                       />
-                    </group>
+                      <StorageBox
+                        position={[secCenterX, lowShelfY + 0.12, shelfCenterZ]}
+                        width={secW - 0.10}
+                        height={0.20}
+                        depth={shelfDepth - 0.08}
+                        color="#3A3D42"
+                      />
+                    </>
                   )}
                 </group>
               )}
@@ -291,19 +371,21 @@ export function ParametricFlexWardrobe({
       })()}
 
       {/* ================================================================= */}
-      {/* 3. PARAMETRIC DOORS                                               */}
+      {/* 4. PARAMETRIC DOORS                                               */}
       {/* ================================================================= */}
       {flexState.doorRequired && (
         <ParametricDoors
           openingWidth={doorOpening}
-          openingHeight={Math.min(2.40, ceiling)}
+          openingHeight={doorHeight}
           ceilingHeight={ceiling}
           doorType={
             flexDesign.door.type === "sliding"
               ? "sliding"
               : flexDesign.door.type === "none" || flexDesign.door.type === "infeasible"
               ? "none"
-              : (flexDesign.door.material === "wooden" ? "wooden" : "aluminum")
+              : flexDesign.door.material === "wooden"
+              ? "wooden"
+              : "aluminum"
           }
           doorSubtype={
             flexDesign.door.type === "sliding"
@@ -314,7 +396,7 @@ export function ParametricFlexWardrobe({
           }
           panelCount={flexDesign.door.panelCount}
           panelWidth={flexDesign.door.panelWidth / 1000}
-          pelmetHeight={Math.max(0, ceiling - 2.40)}
+          pelmetHeight={pelmetHeight}
           isOpen={
             interactionState.leftDoorOpen ||
             interactionState.rightDoorOpen ||
@@ -339,12 +421,13 @@ export function ParametricFlexWardrobe({
   );
 }
 
-// 3D Pullout Metal Wire Mesh Basket with Undermount Slide Runners
+// 3D Pullout SPCC Metal Wire Mesh Basket with Cantilevered Slide Runners
 function WireBasketModule({
   width,
   depth,
   y,
   isOpen,
+  onToggle,
   pbrChromeMat,
   pbrSteelMat,
 }: {
@@ -352,55 +435,81 @@ function WireBasketModule({
   depth: number;
   y: number;
   isOpen: boolean;
+  onToggle: () => void;
   pbrChromeMat: THREE.Material;
   pbrSteelMat: THREE.Material;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const slideZ = isOpen ? 0.32 : 0;
+  const slideZ = isOpen ? 0.26 : 0;
 
   return (
-    <group ref={groupRef} position={[0, y, slideZ]}>
-      {/* Side Slide Mounting Rails */}
-      <mesh position={[-width / 2 - 0.008, 0, 0]} castShadow>
-        <boxGeometry args={[0.012, 0.024, depth]} />
+    <group
+      ref={groupRef}
+      position={[0, y, 0]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+    >
+      {/* Fixed Cantilever Slide Rails Attached to Rear Uprights */}
+      <mesh position={[-width / 2 - 0.008, 0.04, 0]} castShadow>
+        <boxGeometry args={[0.014, 0.026, depth]} />
         <primitive object={pbrSteelMat} attach="material" />
       </mesh>
-      <mesh position={[width / 2 + 0.008, 0, 0]} castShadow>
-        <boxGeometry args={[0.012, 0.024, depth]} />
+      <mesh position={[width / 2 + 0.008, 0.04, 0]} castShadow>
+        <boxGeometry args={[0.014, 0.026, depth]} />
         <primitive object={pbrSteelMat} attach="material" />
       </mesh>
 
-      {/* Wire Basket Perimeter Rim */}
-      <mesh position={[0, 0.08, 0]} castShadow>
-        <boxGeometry args={[width, 0.008, depth]} />
-        <primitive object={pbrChromeMat} attach="material" />
-      </mesh>
+      {/* Sliding Wire Basket Body */}
+      <group position={[0, 0, slideZ]}>
+        {/* Top Steel Perimeter Frame Rim */}
+        <mesh position={[0, 0.05, depth / 2]} castShadow>
+          <boxGeometry args={[width, 0.016, 0.014]} />
+          <primitive object={pbrSteelMat} attach="material" />
+        </mesh>
+        <mesh position={[0, 0.05, -depth / 2]} castShadow>
+          <boxGeometry args={[width, 0.016, 0.014]} />
+          <primitive object={pbrSteelMat} attach="material" />
+        </mesh>
+        {/* Front Pull Handle Bar */}
+        <mesh position={[0, 0.05, depth / 2 + 0.018]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[0.005, 0.005, width * 0.45, 12]} />
+          <primitive object={pbrChromeMat} attach="material" />
+        </mesh>
 
-      {/* Wire Mesh Floor Plate */}
-      <mesh position={[0, -0.06, 0]} receiveShadow>
-        <boxGeometry args={[width - 0.01, 0.006, depth - 0.01]} />
-        <primitive object={pbrChromeMat} attach="material" />
-      </mesh>
+        {/* Bottom Wire Mesh Floor */}
+        <mesh position={[0, -0.07, 0]} receiveShadow>
+          <boxGeometry args={[width - 0.02, 0.006, depth - 0.02]} />
+          <primitive object={pbrChromeMat} attach="material" />
+        </mesh>
 
-      {/* Vertical Wire Grille Bars */}
-      {Array.from({ length: 6 }).map((_, i) => {
-        const barX = -width / 2 + (width / 5) * i;
-        return (
-          <mesh key={`wire-bar-${i}`} position={[barX, 0.01, depth / 2 - 0.005]}>
-            <cylinderGeometry args={[0.002, 0.002, 0.14, 8]} />
-            <primitive object={pbrChromeMat} attach="material" />
-          </mesh>
-        );
-      })}
+        {/* Front & Side Vertical Wire Mesh Bars */}
+        {Array.from({ length: 9 }).map((_, i) => {
+          const barX = -width / 2 + 0.02 + ((width - 0.04) / 8) * i;
+          return (
+            <mesh key={`wire-bar-${i}`} position={[barX, -0.01, depth / 2 - 0.005]}>
+              <cylinderGeometry args={[0.0025, 0.0025, 0.12, 8]} />
+              <primitive object={pbrChromeMat} attach="material" />
+            </mesh>
+          );
+        })}
 
-      {/* Contents inside basket: Folded Linens */}
-      <group position={[0, -0.02, 0]}>
-        <FoldedTowels
-          position={[-width * 0.20, 0, 0]}
-          color="#EDE8DF"
-          count={2}
-        />
-        <RolledTowel position={[width * 0.18, 0.02, 0.02]} color="#D4CBC0" />
+        {/* Horizontal Front Wire Guard Rail */}
+        <mesh position={[0, -0.01, depth / 2 - 0.005]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.0025, 0.0025, width - 0.02, 8]} />
+          <primitive object={pbrChromeMat} attach="material" />
+        </mesh>
+
+        {/* Contents inside basket: Folded Linens */}
+        <group position={[0, -0.04, 0]}>
+          <FoldedTowels
+            position={[-width * 0.18, 0, 0]}
+            color="#EDE8DF"
+            count={2}
+          />
+          <RolledTowel position={[width * 0.18, 0.02, 0.02]} color="#D4CBC0" />
+        </group>
       </group>
     </group>
   );

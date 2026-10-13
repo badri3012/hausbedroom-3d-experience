@@ -88,11 +88,11 @@ export function ControlPanel({
   return (
     <>
       {/* ========================================================= */}
-      {/* 1. TOP VIEWPORT HUD: CLEAN, RESPONSIVE, ZERO CLIPPING     */}
+      {/* 1. TOP VIEWPORT HUD: COMPACT, RESPONSIVE, ZERO CLIPPING   */}
       {/* ========================================================= */}
-      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 z-10 pointer-events-none flex flex-wrap items-center justify-between gap-2">
+      <div className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3.5 right-2.5 sm:right-3.5 z-10 pointer-events-none flex flex-wrap items-center justify-between gap-1.5">
         {/* Camera Presets Segmented Bar */}
-        <div className="pointer-events-auto flex items-center gap-1 p-1 bg-[#1C1C19]/85 backdrop-blur-md border border-white/10 rounded-xl shadow-lg text-white">
+        <div className="pointer-events-auto flex items-center gap-0.5 p-1 bg-[#1C1C19]/80 backdrop-blur-md border border-white/10 rounded-xl shadow-md text-white">
           {(
             [
               { id: "default", label: "Perspective" },
@@ -119,7 +119,7 @@ export function ControlPanel({
                     });
                   }
                 }}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                className={`px-2 sm:px-2.5 py-1 rounded-lg text-[10.5px] sm:text-[11px] font-medium transition-all ${
                   isActive
                     ? "bg-[#A88C69] text-white shadow-sm font-semibold"
                     : "text-[#D8D0C5] hover:text-white hover:bg-white/10"
@@ -132,42 +132,42 @@ export function ControlPanel({
         </div>
 
         {/* Viewport Utilities (Dimensions, Lights, Auto-Rotate, Reset) */}
-        <div className="pointer-events-auto flex items-center gap-1 p-1 bg-[#1C1C19]/85 backdrop-blur-md border border-white/10 rounded-xl shadow-lg text-white">
+        <div className="pointer-events-auto flex items-center gap-0.5 p-1 bg-[#1C1C19]/80 backdrop-blur-md border border-white/10 rounded-xl shadow-md text-white">
           {/* Dimensions Toggle */}
           <button
             onClick={() =>
               onUpdateState({ showDimensions: !state.showDimensions })
             }
             title="Toggle 3D Architectural Dimensions"
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition-all ${
+            className={`px-2 py-1 rounded-lg text-[10.5px] sm:text-[11px] font-medium flex items-center gap-1 transition-all ${
               state.showDimensions
                 ? "bg-[#A88C69] text-white"
                 : "text-[#D8D0C5] hover:text-white hover:bg-white/10"
             }`}
           >
             <Ruler className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Dimensions</span>
+            <span className="hidden lg:inline">Dimensions</span>
           </button>
 
           {/* Spotlights Toggle */}
           <button
             onClick={toggleSpotlights}
             title="Toggle Ceiling Spotlights"
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition-all ${
+            className={`px-2 py-1 rounded-lg text-[10.5px] sm:text-[11px] font-medium flex items-center gap-1 transition-all ${
               state.showSpotlights
                 ? "text-white bg-white/15"
                 : "text-[#77736D] hover:text-[#D8D0C5] hover:bg-white/10"
             }`}
           >
             <Lightbulb className={`w-3.5 h-3.5 ${state.showSpotlights ? "text-[#C5A059]" : ""}`} />
-            <span className="hidden sm:inline">Lighting</span>
+            <span className="hidden lg:inline">Lighting</span>
           </button>
 
           {/* 360 Turntable Auto-Rotate */}
           <button
             onClick={() => onUpdateState({ autoRotate: !state.autoRotate })}
             title="Toggle 360° Turntable Rotation"
-            className={`p-1.5 rounded-lg transition-all ${
+            className={`p-1 rounded-lg transition-all ${
               state.autoRotate
                 ? "bg-[#A88C69] text-white"
                 : "text-[#D8D0C5] hover:text-white hover:bg-white/10"
@@ -180,7 +180,7 @@ export function ControlPanel({
           <button
             onClick={onResetView}
             title="Reset Camera & Wardrobe Position"
-            className="p-1.5 rounded-lg text-[#D8D0C5] hover:text-white hover:bg-white/10 transition-all"
+            className="p-1 rounded-lg text-[#D8D0C5] hover:text-white hover:bg-white/10 transition-all"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
@@ -188,46 +188,46 @@ export function ControlPanel({
       </div>
 
       {/* ========================================================= */}
-      {/* 2. BOTTOM FLOATING INTERACTION BAR: SAFE & BALANCED       */}
+      {/* 2. BOTTOM FLOATING INTERACTION BAR: NON-OBSTRUCTIVE DOCK  */}
       {/* ========================================================= */}
-      <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-[#1C1C19]/90 backdrop-blur-md border border-white/15 rounded-2xl shadow-2xl text-white">
+      <div className="absolute bottom-2.5 sm:bottom-3.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none max-w-[96vw]">
+        <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 bg-[#1C1C19]/82 backdrop-blur-md border border-white/12 rounded-xl shadow-xl text-white whitespace-nowrap">
           {/* Toggle Sliding Doors */}
           <button
             onClick={handleToggleDoors}
-            className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11.5px] sm:text-[12px] font-medium flex items-center gap-2 transition-all ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[11.5px] font-medium flex items-center gap-1.5 transition-all ${
               isDoorsOpen
                 ? "bg-white text-[#1C1C19] shadow-sm font-semibold"
                 : "text-[#E0D8CE] hover:text-white hover:bg-white/10"
             }`}
           >
-            <ArrowLeftRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A88C69]" />
+            <ArrowLeftRight className="w-3.5 h-3.5 text-[#A88C69]" />
             <span>{isDoorsOpen ? "Return Doors" : "Slide Doors"}</span>
           </button>
 
           {/* Toggle Drawers */}
           <button
             onClick={handleToggleDrawers}
-            className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11.5px] sm:text-[12px] font-medium flex items-center gap-2 transition-all ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[11.5px] font-medium flex items-center gap-1.5 transition-all ${
               isDrawersOpen
                 ? "bg-white text-[#1C1C19] shadow-sm font-semibold"
                 : "text-[#E0D8CE] hover:text-white hover:bg-white/10"
             }`}
           >
-            <Box className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#A88C69]" />
+            <Box className="w-3.5 h-3.5 text-[#A88C69]" />
             <span>{isDrawersOpen ? "Close Drawers" : "Open Drawers"}</span>
           </button>
 
           {/* Interior View Mode */}
           <button
             onClick={handleToggleInteriorView}
-            className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11.5px] sm:text-[12px] font-medium flex items-center gap-2 transition-all ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[11.5px] font-medium flex items-center gap-1.5 transition-all ${
               state.interiorViewActive
-                ? "bg-[#A88C69] text-white shadow-md font-semibold"
+                ? "bg-[#A88C69] text-white shadow-sm font-semibold"
                 : "text-[#E0D8CE] hover:text-white hover:bg-white/10"
             }`}
           >
-            <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <Maximize2 className="w-3.5 h-3.5" />
             <span>Interior View</span>
           </button>
         </div>

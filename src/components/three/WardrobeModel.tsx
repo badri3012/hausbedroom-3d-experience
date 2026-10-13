@@ -27,6 +27,7 @@ import {
   PoleLShapeDesign,
   FlexState,
   FlexDesignResult,
+  FlexLShapeDesign,
 } from "@/lib/engineering/types";
 
 export interface WardrobeModelProps {
@@ -40,6 +41,7 @@ export interface WardrobeModelProps {
   poleLShapeDesign?: PoleLShapeDesign;
   flexState?: FlexState;
   flexDesign?: FlexDesignResult;
+  flexLShapeDesign?: FlexLShapeDesign;
 }
 
 export function WardrobeModel({
@@ -52,6 +54,7 @@ export function WardrobeModel({
   poleLShapeDesign,
   flexState,
   flexDesign,
+  flexLShapeDesign,
 }: WardrobeModelProps) {
   // Resolve active finish options
   const woodMaterial: WoodFinishOption = useMemo(() => {
@@ -91,6 +94,7 @@ export function WardrobeModel({
           poleState={poleState}
           poleLShapeDesign={poleLShapeDesign}
           flexState={flexState as FlexState}
+          flexLShapeDesign={flexLShapeDesign}
           interactionState={state}
           onUpdateState={onUpdateState}
           woodMaterial={woodMaterial}
@@ -123,6 +127,7 @@ export function WardrobeModel({
           poleState={poleState as PoleState}
           flexState={flexState}
           flexDesign={flexDesign}
+          flexLShapeDesign={flexLShapeDesign}
           interactionState={state}
           onUpdateState={onUpdateState}
           woodMaterial={woodMaterial}

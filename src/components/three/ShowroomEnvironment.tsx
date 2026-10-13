@@ -6,11 +6,24 @@ import { createParquetFloorTexture } from "@/lib/materials";
 
 interface ShowroomEnvironmentProps {
   activeVariant?: string;
+  widthMeters?: number;
+  heightMeters?: number;
+  shape?: "straight" | "lshape";
+  legBMeters?: number;
 }
 
-export function ShowroomEnvironment({ activeVariant }: ShowroomEnvironmentProps) {
-  // Determine alcove wall spread based on wardrobe width
-  const pilasterX = activeVariant === "full-modular" ? 2.50 : (activeVariant === "open-modular" ? 2.15 : 2.05);
+export function ShowroomEnvironment({
+  activeVariant,
+  widthMeters = 2.74,
+  heightMeters = 2.60,
+  shape = "straight",
+  legBMeters = 2.0,
+}: ShowroomEnvironmentProps) {
+  // Determine alcove wall spread & ceiling height dynamically from physical wardrobe dimensions
+  const halfW = widthMeters / 2;
+  const pilasterX = Math.max(halfW + 0.44, activeVariant === "full-modular" ? 2.50 : 1.75);
+  const ceilingY = Math.max(2.20, heightMeters + 0.006);
+  const rearWallZ = shape === "lshape" ? -legBMeters / 2 - 0.015 : -0.32;
 
   // Parquet hardwood floor texture
   const parquetTexture = useMemo(() => {
@@ -60,51 +73,61 @@ export function ShowroomEnvironment({ activeVariant }: ShowroomEnvironmentProps)
 
   return (
     <group>
-      {/* 1. WARM PARQUET HARDWOOD FLOOR (Reference Image 3) */}
+      {/* 1. WARM PARQUET HARDWOOD FLOOR */}
       <mesh
         position={[0, -0.005, 0.4]}
         rotation={[-Math.PI / 2, 0, 0]}
         receiveShadow
         material={floorMat}
       >
-        <planeGeometry args={[14, 10]} />
+        <planeGeometry args={[18, 14]} />
       </mesh>
 
       {/* 2. REAR ARCHITECTURAL WALL */}
-      <mesh position={[0, 2.2, -0.32]} receiveShadow material={wallMat}>
-        <planeGeometry args={[14, 5.0]} />
+      <mesh position={[0, ceilingY / 2, rearWallZ]} receiveShadow material={wallMat}>
+        <planeGeometry args={[18, ceilingY + 0.4]} />
       </mesh>
 
-      {/* 3. ALCOVE RETURN WALLS FRAMING THE WARDROBE (Reference Image 3) */}
-      {/* Left alcove drywall return pilaster with clean outward travel clearance */}
-      <mesh position={[-pilasterX, 1.25, 0.05]} receiveShadow material={wallMat}>
-        <boxGeometry args={[0.46, 2.50, 0.72]} />
-      </mesh>
-      {/* Right alcove drywall return pilaster with clean outward travel clearance */}
-      <mesh position={[pilasterX, 1.25, 0.05]} receiveShadow material={wallMat}>
-        <boxGeometry args={[0.46, 2.50, 0.72]} />
-      </mesh>
+      {shape === "straight" ? (
+        <>
+          {/* 3. ALCOVE RETURN WALLS FRAMING THE STRAIGHT WARDROBE */}
+          <mesh position={[-pilasterX, ceilingY / 2, 0.05]} receiveShadow material={wallMat}>
+            <boxGeometry args={[0.46, ceilingY, 0.72]} />
+          </mesh>
+          <mesh position={[pilasterX, ceilingY / 2, 0.05]} receiveShadow material={wallMat}>
+            <boxGeometry args={[0.46, ceilingY, 0.72]} />
+          </mesh>
 
-      {/* 4. LIGHT SWITCH ON LEFT WALL (Authentic Reference 3 Detail) */}
-      <group position={[-pilasterX + 0.23, 1.30, 0.28]}>
-        {/* Switch faceplate */}
-        <mesh material={switchPlateMat}>
-          <boxGeometry args={[0.012, 0.12, 0.08]} />
+          {/* 4. LIGHT SWITCH ON LEFT WALL */}
+          <group position={[-pilasterX + 0.23, 1.25, 0.28]}>
+            <mesh material={switchPlateMat}>
+              <boxGeometry args={[0.012, 0.12, 0.08]} />
+            </mesh>
+            <mesh position={[0.006, 0, 0]} material={switchPlateMat}>
+              <boxGeometry args={[0.004, 0.04, 0.03]} />
+            </mesh>
+          </group>
+        </>
+      ) : (
+        /* L-Shape Left Return Wall Behind Leg B */
+        <mesh
+          position={[-halfW - 0.015, ceilingY / 2, 0]}
+          rotation={[0, Math.PI / 2, 0]}
+          receiveShadow
+          material={wallMat}
+        >
+          <planeGeometry args={[14, ceilingY + 0.4]} />
         </mesh>
-        {/* Rocker button */}
-        <mesh position={[0.006, 0, 0]} material={switchPlateMat}>
-          <boxGeometry args={[0.004, 0.04, 0.03]} />
-        </mesh>
-      </group>
+      )}
 
       {/* 5. BASEBOARD SKIRTING TRIM */}
-      <mesh position={[0, 0.045, -0.315]} material={skirtingMat}>
-        <boxGeometry args={[14, 0.09, 0.02]} />
+      <mesh position={[0, 0.045, rearWallZ + 0.005]} material={skirtingMat}>
+        <boxGeometry args={[18, 0.09, 0.02]} />
       </mesh>
 
       {/* 6. CEILING SOFFIT / RECESS */}
-      <mesh position={[0, 2.65, 0.4]} rotation={[Math.PI / 2, 0, 0]} material={ceilingMat}>
-        <planeGeometry args={[14, 10]} />
+      <mesh position={[0, ceilingY, 0.4]} rotation={[Math.PI / 2, 0, 0]} material={ceilingMat}>
+        <planeGeometry args={[18, 14]} />
       </mesh>
     </group>
   );

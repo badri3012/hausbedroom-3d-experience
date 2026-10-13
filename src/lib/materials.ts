@@ -81,28 +81,28 @@ export const DOOR_PANEL_OPTIONS: DoorPanelOption[] = [
   {
     id: "frosted-glass",
     name: "Frosted Glass",
-    subtitle: "Diffused Satin Privacy Glass",
-    color: "#DEE6E5", // Soft milky frosted sage-white matching Reference 3
-    roughness: 0.72, // High scattering roughness - not reflective/transparent window
-    metalness: 0.01,
-    transmission: 0.18, // Subsurface-like diffusion
-    ior: 1.46,
-    opacity: 0.92, // Almost opaque with muted soft silhouettes
+    subtitle: "Clear Architectural Satin Glass",
+    color: "#E8F1F2",
+    roughness: 0.22,
+    metalness: 0.10,
+    transmission: 0.78,
+    ior: 1.48,
+    opacity: 0.22,
     isGlass: true,
-    description: "Signature satin frosted privacy glass diffusing internal silhouettes with refined privacy.",
+    description: "Crystal-clear satin architectural glass with soft edge diffusion that keeps wardrobe interiors clearly visible.",
   },
   {
     id: "smoked-glass",
     name: "Smoked Glass",
     subtitle: "Charcoal Tempered Glass",
-    color: "#1F1F21",
-    roughness: 0.15,
-    metalness: 0.12,
-    transmission: 0.65,
+    color: "#22262A",
+    roughness: 0.14,
+    metalness: 0.18,
+    transmission: 0.72,
     ior: 1.52,
-    opacity: 0.88,
+    opacity: 0.28,
     isGlass: true,
-    description: "Sophisticated tinted glass reflecting ambient lighting while showcasing wardrobe contents.",
+    description: "Sophisticated tinted tempered glass reflecting ambient lighting while clearly showcasing wardrobe contents.",
   },
   {
     id: "light-neutral",

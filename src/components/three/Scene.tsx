@@ -18,6 +18,7 @@ import {
   PoleLShapeDesign,
   FlexState,
   FlexDesignResult,
+  FlexLShapeDesign,
 } from "@/lib/engineering/types";
 
 export interface SceneProps {
@@ -30,6 +31,7 @@ export interface SceneProps {
   poleLShapeDesign?: PoleLShapeDesign;
   flexState?: FlexState;
   flexDesign?: FlexDesignResult;
+  flexLShapeDesign?: FlexLShapeDesign;
 }
 
 export function Scene({
@@ -42,6 +44,7 @@ export function Scene({
   poleLShapeDesign,
   flexState,
   flexDesign,
+  flexLShapeDesign,
 }: SceneProps) {
   const currentVariant =
     WARDROBE_VARIANTS.find((v) => v.id === state.activeVariant) ||
@@ -54,6 +57,30 @@ export function Scene({
         : flexDesign.proposalA
       : null;
 
+  // Compute physical dimensions in meters for auto-framing camera, lighting, and showroom enclosure
+  const widthMeters =
+    productSystem === "pole" && poleState
+      ? (shape === "lshape" ? poleState.ls.legALength : poleState.length) / 1000
+      : productSystem === "flex" && flexState
+      ? (shape === "lshape" ? flexState.ls.legA.length : flexState.length) / 1000
+      : currentVariant.dimensions.width / 1000;
+
+  const heightMeters =
+    productSystem === "pole" && poleState
+      ? (shape === "lshape" ? poleState.ls.ceiling : poleState.ceiling) / 1000
+      : productSystem === "flex" && flexState
+      ? Math.min(3.30, (shape === "lshape" ? flexState.ls.ceiling : flexState.ceiling) / 1000)
+      : currentVariant.dimensions.height / 1000;
+
+  const legBMeters =
+    productSystem === "pole" && poleState
+      ? poleState.ls.legBLength / 1000
+      : productSystem === "flex" && flexState
+      ? flexState.ls.legB.length / 1000
+      : 2.0;
+
+  const effectiveShape = productSystem === "showroom" ? "straight" : shape;
+
   return (
     <div className="w-full h-full relative select-none bg-[#181816] overflow-hidden">
       <Canvas
@@ -65,7 +92,7 @@ export function Scene({
           alpha: false,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.05,
+          toneMappingExposure: 1.08,
         }}
       >
         <Suspense fallback={null}>
@@ -73,19 +100,27 @@ export function Scene({
           <Lighting
             lightingMode={state.lightingMode}
             showSpotlights={state.showSpotlights}
+            heightMeters={heightMeters}
+            widthMeters={widthMeters}
           />
 
           {/* HDR Environment for Realistic PBR Metal/Glass Reflections */}
           <Environment preset="city" />
 
           {/* Realistic Showroom Floor & Enclosure */}
-          <ShowroomEnvironment activeVariant={state.activeVariant} />
+          <ShowroomEnvironment
+            activeVariant={state.activeVariant}
+            widthMeters={widthMeters}
+            heightMeters={heightMeters}
+            shape={effectiveShape}
+            legBMeters={legBMeters}
+          />
 
           {/* Ground Contact Shadows */}
           <ContactShadows
             position={[0, 0.001, 0]}
             opacity={0.65}
-            scale={8.0}
+            scale={10.0}
             blur={2.0}
             far={4.0}
             color="#140E0A"
@@ -102,6 +137,7 @@ export function Scene({
             poleLShapeDesign={poleLShapeDesign}
             flexState={flexState}
             flexDesign={flexDesign}
+            flexLShapeDesign={flexLShapeDesign}
           />
 
           {/* Dimension Overlays */}
@@ -124,7 +160,7 @@ export function Scene({
               ceilingMm={flexState.ceiling}
               depthMm={flexState.depth || 600}
               doorOpeningMm={flexDesign.doorOpening}
-              pelmetMm={Math.max(0, flexState.ceiling - 2400)}
+              pelmetMm={Math.max(0, flexState.ceiling - (flexDesign.doorHeight || 2400))}
               bays={activeFlexProposal.widths.map((w, idx) => ({
                 width: w,
                 xCenter: idx * 0.6 - (activeFlexProposal.widths.length * 0.6) / 2,
@@ -138,12 +174,16 @@ export function Scene({
             />
           )}
 
-          {/* Interactive Camera Controller & Preset Interpolation */}
+          {/* Interactive Camera Controller & Dynamic Bounding Box Framing */}
           <CameraController
             preset={state.cameraPreset}
             interiorViewActive={state.interiorViewActive}
             autoRotate={state.autoRotate}
             activeVariant={state.activeVariant}
+            widthMeters={widthMeters}
+            heightMeters={heightMeters}
+            shape={effectiveShape}
+            legBMeters={legBMeters}
           />
         </Suspense>
       </Canvas>

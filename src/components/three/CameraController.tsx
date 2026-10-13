@@ -12,29 +12,33 @@ interface CameraControllerProps {
   interiorViewActive: boolean;
   autoRotate: boolean;
   activeVariant?: string;
+  widthMeters?: number;
+  heightMeters?: number;
+  shape?: "straight" | "lshape";
+  legBMeters?: number;
 }
 
-// Camera presets with comfortable luxury framing margins for 3.0m - 3.6m models
+// Camera presets with comfortable luxury framing margins
 const PRESET_CONFIGS: Record<CameraPreset, { pos: [number, number, number]; target: [number, number, number] }> = {
   default: {
-    pos: [0.3, 1.25, 4.35],
-    target: [0, 1.20, 0],
+    pos: [0.22, 1.30, 4.35],
+    target: [0, 1.25, 0],
   },
   front: {
-    pos: [0, 1.22, 4.35],
-    target: [0, 1.20, 0],
+    pos: [0, 1.28, 4.35],
+    target: [0, 1.25, 0],
   },
   interior: {
-    pos: [0, 1.18, 3.7],
-    target: [0, 1.18, 0],
+    pos: [0, 1.25, 3.6],
+    target: [0, 1.25, 0],
   },
   side: {
-    pos: [3.4, 1.35, 3.2],
-    target: [0, 1.20, 0],
+    pos: [3.2, 1.35, 3.2],
+    target: [0, 1.25, 0],
   },
   top: {
-    pos: [0.8, 3.4, 3.8],
-    target: [0, 1.10, 0],
+    pos: [0.7, 3.3, 3.8],
+    target: [0, 1.15, 0],
   },
 };
 
@@ -43,6 +47,10 @@ export function CameraController({
   interiorViewActive,
   autoRotate,
   activeVariant,
+  widthMeters = 2.74,
+  heightMeters = 2.60,
+  shape = "straight",
+  legBMeters = 2.0,
 }: CameraControllerProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const { camera, size } = useThree();
@@ -57,35 +65,48 @@ export function CameraController({
   useEffect(() => {
     const activePreset = interiorViewActive ? "interior" : preset;
     const config = PRESET_CONFIGS[activePreset] || PRESET_CONFIGS.default;
-    const target = new THREE.Vector3(...config.target);
+    const centerY = heightMeters * 0.48;
+    const target = new THREE.Vector3(0, centerY, shape === "lshape" ? -0.15 : 0);
     const pos = new THREE.Vector3(...config.pos);
+    pos.y = centerY + (config.pos[1] - config.target[1]);
 
-    // Fit the whole wardrobe based on actual physical width (Full Modular is 4.3m wide)
-    if (activePreset !== "interior") {
-      const fov = (camera as THREE.PerspectiveCamera).fov ?? 38;
-      const tanHalf = Math.tan(THREE.MathUtils.degToRad(fov / 2));
-      const FIT_HALF_W =
-        activeVariant === "full-modular"
-          ? 2.45 // 2.15 m half-width + 0.30 m margin
-          : activeVariant === "open-modular"
-          ? 2.10
-          : 1.95; // 1.50 m half-width + 0.45 m margin
-      const FIT_HALF_H = 1.45; // 1.2 m half-height + ~0.25 m margin (floor + header)
-      const dH = FIT_HALF_W / (tanHalf * aspectBucket);
-      const dV = FIT_HALF_H / tanHalf;
-      const fitDist = Math.max(dH, dV) + 0.35; // + door-plane / perspective allowance
-      const offset = pos.clone().sub(target);
-      const scale = Math.max(1, fitDist / offset.length());
-      pos.copy(target).add(offset.multiplyScalar(scale));
-    } else if (activeVariant === "full-modular") {
-      // Pull back slightly for the wide modular interior
-      pos.set(0, 1.20, 4.3);
+    if (shape === "lshape" && (activePreset === "default" || activePreset === "front")) {
+      // Angle camera slightly to showcase both Leg A and 90° Return Leg B
+      pos.x = Math.max(0.85, widthMeters * 0.32);
     }
+
+    // Automatically frame the complete wardrobe based on actual physical dimensions
+    const fov = (camera as THREE.PerspectiveCamera).fov ?? 38;
+    const tanHalf = Math.tan(THREE.MathUtils.degToRad(fov / 2));
+    const effectiveHalfW =
+      shape === "lshape"
+        ? Math.max(widthMeters, legBMeters) * 0.58 + 0.35
+        : widthMeters * 0.50 + 0.32;
+    const effectiveHalfH = heightMeters * 0.50 + 0.38; // Extra vertical padding so top/bottom HUD bars never overlap wardrobe
+
+    const dH = effectiveHalfW / (tanHalf * Math.max(0.55, aspectBucket));
+    const dV = effectiveHalfH / tanHalf;
+    const baseFitDist = Math.max(dH, dV) + (shape === "lshape" ? legBMeters * 0.38 : 0.42);
+    const fitDist = activePreset === "interior" ? baseFitDist * 0.82 : baseFitDist;
+
+    const offset = pos.clone().sub(target);
+    const scale = fitDist / Math.max(0.1, offset.length());
+    pos.copy(target).add(offset.multiplyScalar(scale));
 
     targetPosRef.current.copy(pos);
     targetLookAtRef.current.copy(target);
     isTransitioningRef.current = true;
-  }, [preset, interiorViewActive, aspectBucket, camera, activeVariant]);
+  }, [
+    preset,
+    interiorViewActive,
+    aspectBucket,
+    camera,
+    activeVariant,
+    widthMeters,
+    heightMeters,
+    shape,
+    legBMeters,
+  ]);
 
   useFrame((_, delta) => {
     if (!controlsRef.current) return;

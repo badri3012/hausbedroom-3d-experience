@@ -24,20 +24,38 @@ export function DimensionalControls({
 }: DimensionalControlsProps) {
   const isPole = productSystem === "pole";
   const length = isPole ? poleState.length : flexState.length;
-  const ceiling = isPole ? poleState.ceiling : flexState.ceiling;
+  const ceiling =
+    shape === "lshape"
+      ? isPole
+        ? poleState.ls.ceiling
+        : flexState.ls.ceiling
+      : isPole
+      ? poleState.ceiling
+      : flexState.ceiling;
   const depth = (isPole ? poleState.depth : flexState.depth) || 600;
 
   const left = isPole ? poleState.left : flexState.left;
   const right = isPole ? poleState.right : flexState.right;
 
   const handleLengthChange = (val: number) => {
-    if (isPole) onUpdatePole({ length: val });
-    else onUpdateFlex({ length: val });
+    const clamped = Math.max(1000, Math.min(4800, Number(val) || 1200));
+    if (isPole) onUpdatePole({ length: clamped });
+    else onUpdateFlex({ length: clamped });
   };
 
   const handleCeilingChange = (val: number) => {
-    if (isPole) onUpdatePole({ ceiling: val });
-    else onUpdateFlex({ ceiling: val });
+    const clamped = Math.max(2000, Math.min(3600, Number(val) || 2400));
+    if (isPole) {
+      onUpdatePole({
+        ceiling: clamped,
+        ls: { ...poleState.ls, ceiling: clamped },
+      });
+    } else {
+      onUpdateFlex({
+        ceiling: clamped,
+        ls: { ...flexState.ls, ceiling: clamped },
+      });
+    }
   };
 
   const handleDepthChange = (val: number) => {

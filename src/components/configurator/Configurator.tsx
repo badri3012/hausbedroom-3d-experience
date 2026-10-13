@@ -147,11 +147,11 @@ export function Configurator() {
     setTimeout(() => setHeaderCopied(false), 2500);
   };
 
-  // Active price calculation for display
+  // Active price calculation for display (includes add-ons for HausPole)
   const currentTotal =
     eng.productSystem === "pole"
-      ? (eng.shape === "lshape" ? eng.poleLSPrice.total : eng.poleStraightPrice.total) || 0
-      : eng.flexPrice.total;
+      ? eng.poleAddons.grandTotal || 0
+      : eng.flexPrice.total || 0;
 
   const currentFootage =
     eng.productSystem === "pole"
@@ -254,17 +254,20 @@ export function Configurator() {
         {/* ======================================================= */}
         {/* LEFT VIEWPORT: 3D REAL-TIME WEBGL CANVAS                */}
         {/* ======================================================= */}
-        <div className="flex-1 relative h-[55vh] md:h-full bg-[#181816] overflow-hidden">
+        <div className="flex-1 relative h-[54vh] md:h-full bg-[#181816] overflow-hidden">
           <Scene
             state={state}
             onUpdateState={handleUpdateState}
-            productSystem={eng.productSystem}
+            productSystem={
+              activeTab === "showroom" ? "showroom" : eng.productSystem
+            }
             shape={eng.shape}
             poleState={eng.poleState}
             poleDesign={eng.poleDesign}
             poleLShapeDesign={eng.poleLShapeDesign}
             flexState={eng.flexState}
             flexDesign={eng.flexDesign}
+            flexLShapeDesign={eng.flexLShapeDesign}
           />
 
           {/* Clean Floating HUD (Camera, Lights, Doors, Drawers, Dimensions) */}
@@ -279,8 +282,8 @@ export function Configurator() {
         {/* RIGHT PANEL: CONFIGURATOR CONTROLS                      */}
         {/* ======================================================= */}
         <aside
-          className={`w-full md:w-[390px] lg:w-[430px] xl:w-[450px] bg-[#FAF8F5] border-t md:border-t-0 md:border-l border-[#E6E1D8] flex flex-col shrink-0 z-20 transition-all duration-300 ${
-            mobileSheetOpen ? "h-[45vh] md:h-full" : "h-11 md:h-full"
+          className={`w-full md:w-[400px] lg:w-[435px] xl:w-[455px] bg-[#FAF8F5] border-t md:border-t-0 md:border-l border-[#E6E1D8] flex flex-col shrink-0 z-20 transition-all duration-300 ${
+            mobileSheetOpen ? "h-[46vh] md:h-full" : "h-11 md:h-full"
           }`}
         >
           {/* Mobile Sheet Toggle Bar */}
@@ -303,8 +306,8 @@ export function Configurator() {
             )}
           </div>
 
-          {/* CONFIGURATOR TABS HEADER */}
-          <div className="flex items-center justify-between px-2.5 sm:px-3 py-2 bg-[#F5F3EF] border-b border-[#E6E1D8] overflow-x-auto no-scrollbar shrink-0">
+          {/* CONFIGURATOR TABS HEADER — NON-CLIPPING 3x2 SEGMENTED GRID */}
+          <div className="grid grid-cols-3 gap-1.5 px-3 py-2.5 bg-[#F5F3EF] border-b border-[#E6E1D8] shrink-0">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -313,28 +316,28 @@ export function Configurator() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 py-1.5 sm:py-2 px-2.5 rounded-xl text-[11px] sm:text-[11.5px] font-medium whitespace-nowrap transition-all ${
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-[11.5px] font-medium transition-all ${
                     isActive
-                      ? "bg-white text-[#242424] shadow-sm font-semibold"
-                      : "text-[#77736D] hover:text-[#242424]"
+                      ? "bg-white text-[#242424] shadow-sm font-semibold border border-[#E6E1D8]"
+                      : "text-[#77736D] hover:text-[#242424] hover:bg-white/50 border border-transparent"
                   }`}
                 >
                   <Icon
-                    className={`w-3.5 h-3.5 ${
+                    className={`w-3.5 h-3.5 shrink-0 ${
                       isActive ? "text-[#A88C69]" : "text-[#77736D]"
                     }`}
                   />
-                  <span>{tab.label}</span>
+                  <span className="truncate">{tab.label}</span>
                 </button>
               );
             })}
           </div>
 
           {/* CONFIGURATOR SCROLLABLE BODY */}
-          <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4">
+          <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-3.5">
             {/* 1. DIMENSIONS & SYSTEM TAB */}
             {activeTab === "overview" && (
-              <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="space-y-3.5 animate-in fade-in duration-200">
                 <SystemShapeSelector
                   productSystem={eng.productSystem}
                   onSelectSystem={eng.setProductSystem}
@@ -357,12 +360,15 @@ export function Configurator() {
               <div className="animate-in fade-in duration-200">
                 <DoorConfigurationPanel
                   productSystem={eng.productSystem}
+                  shape={eng.shape}
                   poleState={eng.poleState}
                   onUpdatePole={eng.updatePoleState}
                   poleDesign={eng.poleDesign}
+                  poleLShapeDesign={eng.poleLShapeDesign}
                   flexState={eng.flexState}
                   onUpdateFlex={eng.updateFlexState}
                   flexDesign={eng.flexDesign}
+                  flexLShapeDesign={eng.flexLShapeDesign}
                 />
               </div>
             )}

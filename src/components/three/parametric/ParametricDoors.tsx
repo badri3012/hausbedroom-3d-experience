@@ -81,28 +81,16 @@ export function ParametricDoors({
       return pbrWoodMat;
     }
     if (doorPanelMaterial.isGlass) {
-      if (doorPanelMaterial.id === "frosted-glass") {
-        return new THREE.MeshStandardMaterial({
-          color: doorPanelMaterial.color,
-          roughness: doorPanelMaterial.roughness,
-          metalness: doorPanelMaterial.metalness,
-          transparent: true,
-          opacity: doorPanelMaterial.opacity,
-          depthWrite: true,
-        });
-      } else {
-        return new THREE.MeshPhysicalMaterial({
-          color: doorPanelMaterial.color,
-          roughness: doorPanelMaterial.roughness,
-          metalness: doorPanelMaterial.metalness,
-          transmission: doorPanelMaterial.transmission,
-          ior: doorPanelMaterial.ior,
-          transparent: true,
-          opacity: doorPanelMaterial.opacity,
-          roughnessMap: null,
-          depthWrite: false,
-        });
-      }
+      return new THREE.MeshStandardMaterial({
+        color: doorPanelMaterial.color,
+        roughness: doorPanelMaterial.roughness,
+        metalness: doorPanelMaterial.metalness,
+        transparent: true,
+        opacity: doorPanelMaterial.opacity,
+        depthWrite: false,
+        envMapIntensity: 1.6,
+        side: THREE.DoubleSide,
+      });
     }
     return new THREE.MeshStandardMaterial({
       color: doorPanelMaterial.color,
@@ -122,6 +110,7 @@ export function ParametricDoors({
 
   const isBifold = doorSubtype === "bifold" || doorType === "wooden";
   const isSwing = doorSubtype === "swing";
+  const isGlassPanel = doorType !== "wooden" && doorPanelMaterial.isGlass;
 
   return (
     <group position={position} rotation={rotation}>
@@ -164,6 +153,7 @@ export function ParametricDoors({
           onToggle={onToggle}
           pbrFrameMat={pbrFrameMat}
           pbrPanelMat={pbrPanelMat}
+          isGlassPanel={isGlassPanel}
         />
       ) : isBifold ? (
         <BifoldDoorAssembly
@@ -175,6 +165,7 @@ export function ParametricDoors({
           onToggle={onToggle}
           pbrFrameMat={pbrFrameMat}
           pbrPanelMat={pbrPanelMat}
+          isGlassPanel={isGlassPanel}
         />
       ) : (
         <SwingDoorAssembly
@@ -186,6 +177,7 @@ export function ParametricDoors({
           onToggle={onToggle}
           pbrFrameMat={pbrFrameMat}
           pbrPanelMat={pbrPanelMat}
+          isGlassPanel={isGlassPanel}
         />
       )}
     </group>
@@ -193,7 +185,7 @@ export function ParametricDoors({
 }
 
 // =========================================================================
-// Sliding Door Assembly (Outward Smooth Sliding Kinematics)
+// Sliding Door Assembly (Supports 2..10 Panels with Smooth Kinematics)
 // =========================================================================
 interface SlidingAssemblyProps {
   openingWidth: number;
@@ -205,6 +197,7 @@ interface SlidingAssemblyProps {
   onToggle: () => void;
   pbrFrameMat: THREE.Material;
   pbrPanelMat: THREE.Material;
+  isGlassPanel: boolean;
 }
 
 function SlidingDoorAssembly({
@@ -217,168 +210,67 @@ function SlidingDoorAssembly({
   onToggle,
   pbrFrameMat,
   pbrPanelMat,
+  isGlassPanel,
 }: SlidingAssemblyProps) {
-  // Ensure actual physical panel width has realistic overlap (25mm)
-  const actualPanelWidth = Math.max(panelWidth, openingWidth / panelCount + 0.025);
+  const count = Math.max(2, panelCount);
+  const seg = openingWidth / count;
+  const actualPanelWidth = Math.max(panelWidth || seg, seg + 0.024);
 
-  if (panelCount === 2) {
-    // 2 Panels: Left slides LEFT, Right slides RIGHT (Outward Kinematics)
-    const closedLeftX = -openingWidth / 4;
-    const closedRightX = openingWidth / 4;
+  const panels = Array.from({ length: count }).map((_, i) => {
+    const closedX = -openingWidth / 2 + seg * (i + 0.5);
+    const isLeftHalf = i < count / 2;
+    let openX = closedX;
 
-    const openLeftX = -openingWidth / 2 + actualPanelWidth / 2 + 0.01;
-    const openRightX = openingWidth / 2 - actualPanelWidth / 2 - 0.01;
+    if (count === 2) {
+      // Left panel slides along the front track over the right panel within the track bounds,
+      // fully exposing the left drawer/storage bay without intersecting side partitions or L-shape corners
+      openX = i === 0
+        ? openingWidth / 2 - actualPanelWidth / 2 - 0.02
+        : closedX;
+    } else {
+      // Multi-panel stacking toward outer left and right edges within track bounds
+      const edgeLeft = -openingWidth / 2 + actualPanelWidth / 2 + 0.01;
+      const edgeRight = openingWidth / 2 - actualPanelWidth / 2 - 0.01;
+      openX = isLeftHalf
+        ? edgeLeft + i * 0.025
+        : edgeRight - (count - 1 - i) * 0.025;
+    }
 
-    return (
-      <>
-        <SingleSlidingDoorPanel
-          id="door-left"
-          width={actualPanelWidth}
-          height={doorHeight}
-          closedX={closedLeftX}
-          targetX={isOpen ? openLeftX : closedLeftX}
-          trackZ={depthOffset + 0.016}
-          pbrFrameMat={pbrFrameMat}
-          pbrPanelMat={pbrPanelMat}
-          handleSide="right"
-          onToggle={onToggle}
-        />
-        <SingleSlidingDoorPanel
-          id="door-right"
-          width={actualPanelWidth}
-          height={doorHeight}
-          closedX={closedRightX}
-          targetX={isOpen ? openRightX : closedRightX}
-          trackZ={depthOffset - 0.016}
-          pbrFrameMat={pbrFrameMat}
-          pbrPanelMat={pbrPanelMat}
-          handleSide="left"
-          onToggle={onToggle}
-        />
-      </>
-    );
-  }
+    const trackZ = depthOffset + (i % 2 === 0 ? 0.016 : -0.016);
+    const handleSide: "left" | "right" = isLeftHalf ? "right" : "left";
 
-  if (panelCount === 3) {
-    // 3 Panels: Left (-W/3), Center (0), Right (+W/3)
-    const seg = openingWidth / 3;
-    const closedLeftX = -seg;
-    const closedCenterX = 0;
-    const closedRightX = seg;
-
-    const openLeftX = -openingWidth / 2 + actualPanelWidth / 2 + 0.01;
-    const openRightX = openingWidth / 2 - actualPanelWidth / 2 - 0.01;
-    const openCenterX = 0; // Remains center or stacks behind left
-
-    return (
-      <>
-        <SingleSlidingDoorPanel
-          id="door-left"
-          width={actualPanelWidth}
-          height={doorHeight}
-          closedX={closedLeftX}
-          targetX={isOpen ? openLeftX : closedLeftX}
-          trackZ={depthOffset + 0.022}
-          pbrFrameMat={pbrFrameMat}
-          pbrPanelMat={pbrPanelMat}
-          handleSide="right"
-          onToggle={onToggle}
-        />
-        <SingleSlidingDoorPanel
-          id="door-center"
-          width={actualPanelWidth}
-          height={doorHeight}
-          closedX={closedCenterX}
-          targetX={isOpen ? openLeftX + 0.04 : closedCenterX}
-          trackZ={depthOffset}
-          pbrFrameMat={pbrFrameMat}
-          pbrPanelMat={pbrPanelMat}
-          handleSide="right"
-          onToggle={onToggle}
-        />
-        <SingleSlidingDoorPanel
-          id="door-right"
-          width={actualPanelWidth}
-          height={doorHeight}
-          closedX={closedRightX}
-          targetX={isOpen ? openRightX : closedRightX}
-          trackZ={depthOffset - 0.022}
-          pbrFrameMat={pbrFrameMat}
-          pbrPanelMat={pbrPanelMat}
-          handleSide="left"
-          onToggle={onToggle}
-        />
-      </>
-    );
-  }
-
-  // 4 Panels (2 bi-parting pairs sliding outward)
-  const seg4 = openingWidth / 4;
-  const closedX1 = -seg4 * 1.5;
-  const closedX2 = -seg4 * 0.5;
-  const closedX3 = seg4 * 0.5;
-  const closedX4 = seg4 * 1.5;
-
-  const openX1 = -openingWidth / 2 + actualPanelWidth / 2 + 0.01;
-  const openX2 = openX1 + 0.03;
-  const openX4 = openingWidth / 2 - actualPanelWidth / 2 - 0.01;
-  const openX3 = openX4 - 0.03;
+    return {
+      id: `sliding-door-${i}`,
+      closedX,
+      openX,
+      trackZ,
+      handleSide,
+    };
+  });
 
   return (
     <>
-      <SingleSlidingDoorPanel
-        id="door-1"
-        width={actualPanelWidth}
-        height={doorHeight}
-        closedX={closedX1}
-        targetX={isOpen ? openX1 : closedX1}
-        trackZ={depthOffset + 0.018}
-        pbrFrameMat={pbrFrameMat}
-        pbrPanelMat={pbrPanelMat}
-        handleSide="right"
-        onToggle={onToggle}
-      />
-      <SingleSlidingDoorPanel
-        id="door-2"
-        width={actualPanelWidth}
-        height={doorHeight}
-        closedX={closedX2}
-        targetX={isOpen ? openX2 : closedX2}
-        trackZ={depthOffset - 0.018}
-        pbrFrameMat={pbrFrameMat}
-        pbrPanelMat={pbrPanelMat}
-        handleSide="right"
-        onToggle={onToggle}
-      />
-      <SingleSlidingDoorPanel
-        id="door-3"
-        width={actualPanelWidth}
-        height={doorHeight}
-        closedX={closedX3}
-        targetX={isOpen ? openX3 : closedX3}
-        trackZ={depthOffset - 0.018}
-        pbrFrameMat={pbrFrameMat}
-        pbrPanelMat={pbrPanelMat}
-        handleSide="left"
-        onToggle={onToggle}
-      />
-      <SingleSlidingDoorPanel
-        id="door-4"
-        width={actualPanelWidth}
-        height={doorHeight}
-        closedX={closedX4}
-        targetX={isOpen ? openX4 : closedX4}
-        trackZ={depthOffset + 0.018}
-        pbrFrameMat={pbrFrameMat}
-        pbrPanelMat={pbrPanelMat}
-        handleSide="left"
-        onToggle={onToggle}
-      />
+      {panels.map((p) => (
+        <SingleSlidingDoorPanel
+          key={p.id}
+          id={p.id}
+          width={actualPanelWidth}
+          height={doorHeight}
+          closedX={p.closedX}
+          targetX={isOpen ? p.openX : p.closedX}
+          trackZ={p.trackZ}
+          pbrFrameMat={pbrFrameMat}
+          pbrPanelMat={pbrPanelMat}
+          isGlassPanel={isGlassPanel}
+          handleSide={p.handleSide}
+          onToggle={onToggle}
+        />
+      ))}
     </>
   );
 }
 
-// Single Sliding Door Panel with Lerp Animation and Frame Detailing
+// Single Sliding Door Panel with Lerp Animation and Architectural Frame Detailing
 interface SingleSlidingProps {
   id: string;
   width: number;
@@ -388,12 +280,12 @@ interface SingleSlidingProps {
   trackZ: number;
   pbrFrameMat: THREE.Material;
   pbrPanelMat: THREE.Material;
+  isGlassPanel: boolean;
   handleSide: "left" | "right";
   onToggle: () => void;
 }
 
 function SingleSlidingDoorPanel({
-  id,
   width,
   height,
   closedX,
@@ -401,6 +293,7 @@ function SingleSlidingDoorPanel({
   trackZ,
   pbrFrameMat,
   pbrPanelMat,
+  isGlassPanel,
   handleSide,
   onToggle,
 }: SingleSlidingProps) {
@@ -419,10 +312,10 @@ function SingleSlidingDoorPanel({
   });
 
   const frameThickness = 0.024;
-  const frameBorder = 0.035;
-  const innerW = width - frameBorder * 2;
-  const innerH = height - frameBorder * 2;
-  const handleX = handleSide === "right" ? width / 2 - 0.028 : -width / 2 + 0.028;
+  const frameBorder = 0.028;
+  const innerW = Math.max(0.1, width - frameBorder * 2);
+  const innerH = Math.max(0.1, height - frameBorder * 2);
+  const handleX = handleSide === "right" ? width / 2 - 0.022 : -width / 2 + 0.022;
 
   return (
     <group
@@ -443,44 +336,50 @@ function SingleSlidingDoorPanel({
       }}
     >
       {/* Outer Aluminum Frame: Left, Right, Top, Bottom */}
-      {/* Left Stile */}
       <mesh position={[-width / 2 + frameBorder / 2, 0, 0]} castShadow>
         <boxGeometry args={[frameBorder, height, frameThickness]} />
         <primitive object={pbrFrameMat} attach="material" />
       </mesh>
-      {/* Right Stile */}
       <mesh position={[width / 2 - frameBorder / 2, 0, 0]} castShadow>
         <boxGeometry args={[frameBorder, height, frameThickness]} />
         <primitive object={pbrFrameMat} attach="material" />
       </mesh>
-      {/* Top Rail */}
       <mesh position={[0, height / 2 - frameBorder / 2, 0]} castShadow>
         <boxGeometry args={[innerW, frameBorder, frameThickness]} />
         <primitive object={pbrFrameMat} attach="material" />
       </mesh>
-      {/* Bottom Rail */}
       <mesh position={[0, -height / 2 + frameBorder / 2, 0]} castShadow>
         <boxGeometry args={[innerW, frameBorder, frameThickness]} />
         <primitive object={pbrFrameMat} attach="material" />
       </mesh>
 
-      {/* Main Glass / Wooden Panel Insert */}
-      <mesh position={[0, 0, 0]} castShadow receiveShadow>
-        <boxGeometry args={[innerW, innerH, 0.008]} />
+      {/* Architectural Horizontal Transom Bars (Muntins) */}
+      <mesh position={[0, height * 0.165, 0]} castShadow>
+        <boxGeometry args={[innerW, 0.014, frameThickness * 0.85]} />
+        <primitive object={pbrFrameMat} attach="material" />
+      </mesh>
+      <mesh position={[0, -height * 0.165, 0]} castShadow>
+        <boxGeometry args={[innerW, 0.014, frameThickness * 0.85]} />
+        <primitive object={pbrFrameMat} attach="material" />
+      </mesh>
+
+      {/* Main Glass / Wooden Panel Insert — Glass does NOT cast solid shadows onto interior */}
+      <mesh position={[0, 0, 0]} castShadow={!isGlassPanel} receiveShadow={!isGlassPanel} renderOrder={2}>
+        <boxGeometry args={[innerW, innerH, 0.006]} />
         <primitive object={pbrPanelMat} attach="material" />
       </mesh>
 
-      {/* Vertical Slim Aluminum Grip Handle (Reference Image 3) */}
+      {/* Vertical Slim Aluminum Grip Handle */}
       <mesh position={[handleX, 0, frameThickness / 2 + 0.008]} castShadow>
-        <boxGeometry args={[0.012, 0.90, 0.018]} />
+        <boxGeometry args={[0.012, 0.85, 0.016]} />
         <primitive object={pbrFrameMat} attach="material" />
       </mesh>
 
       {/* Subtle Hover Selection Glow Indicator */}
       {hovered && (
-        <mesh position={[0, 0, frameThickness / 2 + 0.001]}>
+        <mesh position={[0, 0, frameThickness / 2 + 0.002]} renderOrder={3}>
           <planeGeometry args={[width, height]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.06} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.05} depthWrite={false} />
         </mesh>
       )}
     </group>
@@ -499,6 +398,7 @@ interface BifoldAssemblyProps {
   onToggle: () => void;
   pbrFrameMat: THREE.Material;
   pbrPanelMat: THREE.Material;
+  isGlassPanel: boolean;
 }
 
 function BifoldDoorAssembly({
@@ -510,6 +410,7 @@ function BifoldDoorAssembly({
   onToggle,
   pbrFrameMat,
   pbrPanelMat,
+  isGlassPanel,
 }: BifoldAssemblyProps) {
   const pairs = Math.max(1, Math.floor(panelCount / 2));
   const pairWidth = openingWidth / pairs;
@@ -530,10 +431,66 @@ function BifoldDoorAssembly({
             onToggle={onToggle}
             pbrFrameMat={pbrFrameMat}
             pbrPanelMat={pbrPanelMat}
+            isGlassPanel={isGlassPanel}
           />
         );
       })}
     </>
+  );
+}
+
+function FramedDoorLeaf({
+  leafWidth,
+  doorHeight,
+  pbrFrameMat,
+  pbrPanelMat,
+  isGlassPanel,
+}: {
+  leafWidth: number;
+  doorHeight: number;
+  pbrFrameMat: THREE.Material;
+  pbrPanelMat: THREE.Material;
+  isGlassPanel: boolean;
+}) {
+  const border = 0.024;
+  const thickness = 0.022;
+  const innerW = Math.max(0.05, leafWidth - border * 2);
+  const innerH = Math.max(0.1, doorHeight - border * 2);
+
+  return (
+    <group position={[leafWidth / 2, 0, 0]}>
+      {/* Perimeter Frame */}
+      <mesh position={[-leafWidth / 2 + border / 2, 0, 0]} castShadow>
+        <boxGeometry args={[border, doorHeight, thickness]} />
+        <primitive object={pbrFrameMat} attach="material" />
+      </mesh>
+      <mesh position={[leafWidth / 2 - border / 2, 0, 0]} castShadow>
+        <boxGeometry args={[border, doorHeight, thickness]} />
+        <primitive object={pbrFrameMat} attach="material" />
+      </mesh>
+      <mesh position={[0, doorHeight / 2 - border / 2, 0]} castShadow>
+        <boxGeometry args={[innerW, border, thickness]} />
+        <primitive object={pbrFrameMat} attach="material" />
+      </mesh>
+      <mesh position={[0, -doorHeight / 2 + border / 2, 0]} castShadow>
+        <boxGeometry args={[innerW, border, thickness]} />
+        <primitive object={pbrFrameMat} attach="material" />
+      </mesh>
+      {/* Mid Transom Bars */}
+      <mesh position={[0, doorHeight * 0.16, 0]} castShadow>
+        <boxGeometry args={[innerW, 0.012, thickness * 0.85]} />
+        <primitive object={pbrFrameMat} attach="material" />
+      </mesh>
+      <mesh position={[0, -doorHeight * 0.16, 0]} castShadow>
+        <boxGeometry args={[innerW, 0.012, thickness * 0.85]} />
+        <primitive object={pbrFrameMat} attach="material" />
+      </mesh>
+      {/* Insert Panel */}
+      <mesh castShadow={!isGlassPanel} receiveShadow={!isGlassPanel} renderOrder={2}>
+        <boxGeometry args={[innerW, innerH, 0.008]} />
+        <primitive object={pbrPanelMat} attach="material" />
+      </mesh>
+    </group>
   );
 }
 
@@ -546,6 +503,7 @@ function BifoldLeafPair({
   onToggle,
   pbrFrameMat,
   pbrPanelMat,
+  isGlassPanel,
 }: {
   pairStartX: number;
   leafWidth: number;
@@ -555,6 +513,7 @@ function BifoldLeafPair({
   onToggle: () => void;
   pbrFrameMat: THREE.Material;
   pbrPanelMat: THREE.Material;
+  isGlassPanel: boolean;
 }) {
   const rootRef = useRef<THREE.Group>(null);
   const secondLeafRef = useRef<THREE.Group>(null);
@@ -587,27 +546,23 @@ function BifoldLeafPair({
       }}
     >
       <group ref={rootRef}>
-        {/* First Leaf */}
-        <mesh position={[leafWidth / 2, 0, 0]} castShadow receiveShadow>
-          <boxGeometry args={[leafWidth - 0.006, doorHeight, 0.022]} />
-          <primitive object={pbrPanelMat} attach="material" />
-        </mesh>
-        {/* Leaf 1 Frame Border */}
-        <mesh position={[leafWidth / 2, 0, 0]}>
-          <boxGeometry args={[leafWidth, doorHeight, 0.024]} />
-          <primitive object={pbrFrameMat} attach="material" />
-        </mesh>
+        <FramedDoorLeaf
+          leafWidth={leafWidth}
+          doorHeight={doorHeight}
+          pbrFrameMat={pbrFrameMat}
+          pbrPanelMat={pbrPanelMat}
+          isGlassPanel={isGlassPanel}
+        />
 
         {/* Second Leaf Hinged at End of Leaf 1 */}
         <group ref={secondLeafRef} position={[leafWidth, 0, 0]}>
-          <mesh position={[leafWidth / 2, 0, 0]} castShadow receiveShadow>
-            <boxGeometry args={[leafWidth - 0.006, doorHeight, 0.022]} />
-            <primitive object={pbrPanelMat} attach="material" />
-          </mesh>
-          <mesh position={[leafWidth / 2, 0, 0]}>
-            <boxGeometry args={[leafWidth, doorHeight, 0.024]} />
-            <primitive object={pbrFrameMat} attach="material" />
-          </mesh>
+          <FramedDoorLeaf
+            leafWidth={leafWidth}
+            doorHeight={doorHeight}
+            pbrFrameMat={pbrFrameMat}
+            pbrPanelMat={pbrPanelMat}
+            isGlassPanel={isGlassPanel}
+          />
         </group>
       </group>
     </group>
@@ -626,6 +581,7 @@ interface SwingAssemblyProps {
   onToggle: () => void;
   pbrFrameMat: THREE.Material;
   pbrPanelMat: THREE.Material;
+  isGlassPanel: boolean;
 }
 
 function SwingDoorAssembly({
@@ -637,6 +593,7 @@ function SwingDoorAssembly({
   onToggle,
   pbrFrameMat,
   pbrPanelMat,
+  isGlassPanel,
 }: SwingAssemblyProps) {
   const count = Math.max(1, panelCount);
   const leafWidth = openingWidth / count;
@@ -658,6 +615,7 @@ function SwingDoorAssembly({
             onToggle={onToggle}
             pbrFrameMat={pbrFrameMat}
             pbrPanelMat={pbrPanelMat}
+            isGlassPanel={isGlassPanel}
           />
         );
       })}
@@ -675,6 +633,7 @@ function SwingLeaf({
   onToggle,
   pbrFrameMat,
   pbrPanelMat,
+  isGlassPanel,
 }: {
   hingeX: number;
   leafWidth: number;
@@ -685,6 +644,7 @@ function SwingLeaf({
   onToggle: () => void;
   pbrFrameMat: THREE.Material;
   pbrPanelMat: THREE.Material;
+  isGlassPanel: boolean;
 }) {
   const hingeRef = useRef<THREE.Group>(null);
 
@@ -708,16 +668,15 @@ function SwingLeaf({
       }}
     >
       <group ref={hingeRef}>
-        <mesh position={[leafWidth / 2, 0, 0]} castShadow receiveShadow>
-          <boxGeometry args={[leafWidth - 0.006, doorHeight, 0.022]} />
-          <primitive object={pbrPanelMat} attach="material" />
-        </mesh>
-        <mesh position={[leafWidth / 2, 0, 0]}>
-          <boxGeometry args={[leafWidth, doorHeight, 0.024]} />
-          <primitive object={pbrFrameMat} attach="material" />
-        </mesh>
+        <FramedDoorLeaf
+          leafWidth={leafWidth}
+          doorHeight={doorHeight}
+          pbrFrameMat={pbrFrameMat}
+          pbrPanelMat={pbrPanelMat}
+          isGlassPanel={isGlassPanel}
+        />
         {/* Handle */}
-        <mesh position={[leafWidth - 0.03, 0, 0.016]}>
+        <mesh position={[leafWidth - 0.03, 0, 0.016]} castShadow>
           <boxGeometry args={[0.012, 0.30, 0.015]} />
           <primitive object={pbrFrameMat} attach="material" />
         </mesh>
