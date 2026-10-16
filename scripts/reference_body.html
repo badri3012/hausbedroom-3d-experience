@@ -1,0 +1,612 @@
+
+
+<header class="top">
+  <h1>Haus<span id="brandSuffix">Pole</span> Configurator</h1>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div class="segmented product-toggle" id="productToggle">
+      <button data-product="pole" class="active">HausPole</button>
+      <button data-product="flex">HausFlex</button>
+    </div>
+    <button id="resetAllBtn" style="padding:8px 16px; background:transparent; border:1px solid #6B5A48; color:#D8A574; border-radius:4px; font-size:0.78rem; font-family:inherit; cursor:pointer; letter-spacing:0.3px;">Clear All / New Quote</button>
+    <div class="tag">Methodology v1 — engineering check tool, not final drawing</div>
+  </div>
+</header>
+
+<nav class="page-nav">
+  <div class="page-nav-tabs">
+    <button class="page-nav-btn active" data-page="config">Configurator</button>
+    <button class="page-nav-btn" data-page="addons">Add-ons &amp; Pricing</button>
+    <button class="page-nav-btn" data-page="quote">Quote Output</button>
+  </div>
+</nav>
+
+<div class="app" id="page-config">
+<div class="app" id="poleApp" style="display:flex;">
+  <aside class="controls">
+    <h2>Wardrobe shape</h2>
+    <div class="field">
+      <div class="segmented" id="shapeToggle">
+        <button data-shape="straight" class="active">Straight</button>
+        <button data-shape="lshape">L-Shaped</button>
+      </div>
+    </div>
+
+    <div id="straightFields">
+    <h2>Door required?</h2>
+    <div class="field">
+      <div class="segmented" id="doorRequiredToggle">
+        <button data-required="yes" class="active">Yes</button>
+        <button data-required="no">No</button>
+      </div>
+    </div>
+
+    <h2>Overall dimensions</h2>
+    <div class="field">
+      <label for="lengthInput">Wall / run length (mm)</label>
+      <input type="number" id="lengthInput" value="2700" min="600" max="6000" step="10">
+    </div>
+    <div class="field">
+      <label for="ceilingInput">Ceiling height (mm)</label>
+      <input type="number" id="ceilingInput" value="2600" min="1800" max="3400" step="10">
+      <div class="hint">Default assumption: 2600mm (HDB)</div>
+    </div>
+    <div class="field">
+      <label for="depthInput">Desired depth (mm)</label>
+      <input type="number" id="depthInput" value="600" min="350" max="750" step="10">
+      <div class="hint">Default 600mm · max 750mm</div>
+    </div>
+
+    <h2>Door type preference</h2>
+    <div class="field" id="doorTypeFieldWrap">
+      <select id="doorTypePref">
+        <option value="auto" selected>Auto (sliding → bifold → swing fallback)</option>
+        <option value="sliding">Sliding (required)</option>
+        <option value="wooden">Wooden hinged/bifold (required)</option>
+        <option value="aluminum">Aluminum bifold (required)</option>
+        <option value="swing">Single swing (required)</option>
+      </select>
+      <div class="hint">Auto resolves sliding → bifold → single swing per the fallback hierarchy and assumes wooden material until confirmed. Forcing a type skips the fallback — if it genuinely can't fit the opening, you'll get an infeasible warning instead of a silent substitution.</div>
+    </div>
+    <div class="hint" id="doorTypeNA" style="display:none;">N/A — no door selected above.</div>
+
+    <div id="doorHeightUpgradeWrap">
+    <div class="field" id="upgradeField" style="display:none;">
+      <div class="check" id="chkUpgrade">
+        <span class="lbl">Upgrade door height beyond 2400mm (+cost)</span>
+        <span class="toggle"></span>
+      </div>
+      <div class="hint">Default door height is 2400mm (rest becomes pelmet). Upgrading uses the full ceiling budget instead — only available when ceiling exceeds 2450mm. Not applicable with no door selected.</div>
+    </div>
+    </div>
+
+    <h2>Left side condition</h2>
+    <div class="side-block">
+      <select id="leftType">
+        <option value="none">No wall (open)</option>
+        <option value="wall">Wall — no beam</option>
+        <option value="beam">Wall — with beam</option>
+      </select>
+      <div class="beam-fields" id="leftBeamFields">
+        <div>
+          <label class="hint">Beam width (along wall, mm)</label>
+          <input type="number" id="leftBeamWidth" value="130" min="20" max="600">
+        </div>
+      </div>
+    </div>
+
+    <h2>Right side condition</h2>
+    <div class="side-block">
+      <select id="rightType">
+        <option value="none">No wall (open)</option>
+        <option value="wall">Wall — no beam</option>
+        <option value="beam">Wall — with beam</option>
+      </select>
+      <div class="beam-fields" id="rightBeamFields">
+        <div>
+          <label class="hint">Beam width (along wall, mm)</label>
+          <input type="number" id="rightBeamWidth" value="130" min="20" max="600">
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="check" id="chkInternalUpgrade">
+        <span class="lbl">Upgrade internal height to 2400mm (+cost)</span>
+        <span class="toggle"></span>
+      </div>
+      <div class="hint" id="internalUpgradeHint">With a door: triggers the same $60/pftrun tier as a door-height upgrade (ceiling ≤3000mm), on its own or combined. With no door: +$30/pftrun.</div>
+    </div>
+    </div>
+
+    <div id="lshapeFields" style="display:none;">
+      <h2>Door required?</h2>
+      <div class="field">
+        <div class="segmented" id="lsDoorRequiredToggle">
+          <button data-required="yes" class="active">Yes</button>
+          <button data-required="no">No</button>
+        </div>
+        <div class="hint">Applies to both legs — set "No" for a fully open L-shape with no doors at all.</div>
+      </div>
+
+      <h2>Door type preference (shared, both legs)</h2>
+      <div class="field">
+        <select id="lsDoorTypePref">
+          <option value="auto" selected>Auto (sliding → bifold → swing fallback)</option>
+          <option value="sliding">Sliding (required)</option>
+          <option value="wooden">Wooden hinged/bifold (required)</option>
+          <option value="aluminum">Aluminum bifold (required)</option>
+          <option value="swing">Single swing (required)</option>
+        </select>
+        <div class="hint">Auto per leg: sliding → bifold → single swing, wooden material assumed until confirmed. Forcing a type applies to both legs — if either leg's opening can't take it, that leg is flagged infeasible instead of silently substituted.</div>
+      </div>
+
+      <h2>Ceiling &amp; depth (shared)</h2>
+      <div class="field">
+        <label for="lsCeilingInput">Ceiling height (mm)</label>
+        <input type="number" id="lsCeilingInput" value="2600" min="1800" max="3400" step="10">
+      </div>
+      <div class="field">
+        <label for="lsDepthInput">Depth per leg (mm)</label>
+        <input type="number" id="lsDepthInput" value="600" min="350" max="750" step="10">
+        <div class="hint">Both legs use this depth (asymmetric per-leg depth not yet supported)</div>
+      </div>
+
+      <h2>Leg A</h2>
+      <div class="field">
+        <label for="legALength">Leg A length (mm)</label>
+        <input type="number" id="legALength" value="1900" min="600" max="4000" step="10">
+      </div>
+      <div class="side-block">
+        <label class="hint">Leg A outer end</label>
+        <select id="legAWall">
+          <option value="none">No wall (open)</option>
+          <option value="wall">Wall — no beam</option>
+          <option value="beam">Wall — with beam</option>
+        </select>
+        <div class="beam-fields" id="legABeamFields">
+          <div>
+            <label class="hint">Beam width (along wall, mm)</label>
+            <input type="number" id="legABeamWidth" value="130" min="20" max="600">
+          </div>
+        </div>
+      </div>
+
+      <h2>Leg B</h2>
+      <div class="field">
+        <label for="legBLength">Leg B length (mm)</label>
+        <input type="number" id="legBLength" value="1250" min="600" max="4000" step="10">
+      </div>
+      <div class="side-block">
+        <label class="hint">Leg B outer end</label>
+        <select id="legBWall">
+          <option value="none">No wall (open)</option>
+          <option value="wall">Wall — no beam</option>
+          <option value="beam">Wall — with beam</option>
+        </select>
+        <div class="beam-fields" id="legBBeamFields">
+          <div>
+            <label class="hint">Beam width (along wall, mm)</label>
+            <input type="number" id="legBBeamWidth" value="130" min="20" max="600">
+          </div>
+        </div>
+      </div>
+      <div class="hint">Longer leg auto-gets 3 columns; shorter leg gets 2 (Section 7.3). Corner deductions apply automatically per Section 7.2/7.5.</div>
+
+      <h2>Pricing options (shared, both legs)</h2>
+      <div class="field">
+        <div class="check" id="lsChkDoorUpgrade">
+          <span class="lbl">Upgrade door height beyond 2400mm (+cost)</span>
+          <span class="toggle"></span>
+        </div>
+        <div class="hint">Only relevant if ceiling exceeds 2450mm and at least one leg has a door.</div>
+      </div>
+      <div class="field">
+        <div class="check" id="lsChkInternalUpgrade">
+          <span class="lbl">Upgrade internal height to 2400mm (+cost)</span>
+          <span class="toggle"></span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="canvas-area">
+    <div id="straightOutput">
+    <div class="tabs">
+      <button class="tab-btn pole-tab-btn active" data-view="ext">External Elevation</button>
+      <button class="tab-btn pole-tab-btn" data-view="int">Internal Elevation</button>
+      <button class="tab-btn pole-tab-btn" data-view="top">Top View</button>
+    </div>
+    <div class="view-panel">
+      <canvas id="elevCanvas"></canvas>
+      <canvas id="internalElevCanvas" style="display:none;"></canvas>
+      <canvas id="topViewCanvas" style="display:none;"></canvas>
+    </div>
+    <div class="spec-sheet" id="specSheet"></div>
+    <div class="spec-sheet" id="internalSheet"></div>
+    </div>
+
+    <div id="lshapeOutput" style="display:none;">
+      <div class="tabs">
+        <button class="tab-btn ls-tab-btn pole-ls-tab-btn active" data-lsview="ext">External Elevation</button>
+        <button class="tab-btn ls-tab-btn pole-ls-tab-btn" data-lsview="int">Internal Elevation</button>
+        <button class="tab-btn ls-tab-btn pole-ls-tab-btn" data-lsview="top">Top View</button>
+      </div>
+      <div class="view-panel">
+        <canvas id="lshapeExtCanvas" style="display:block; width:100%; height:480px;"></canvas>
+        <canvas id="lshapeIntCanvas" style="display:none; width:100%; height:480px;"></canvas>
+        <canvas id="lshapeTopViewCanvas" style="display:none; width:100%; height:480px;"></canvas>
+      </div>
+      <div class="spec-sheet" id="lshapeSpecSheet"></div>
+    </div>
+  </main>
+</div>
+
+<div class="app" id="flexApp" style="display:none;">
+  <aside class="controls">
+    <h2>Wardrobe shape</h2>
+    <div class="field">
+      <div class="segmented" id="flexShapeToggle">
+        <button data-shape="straight" class="active">Straight</button>
+        <button data-shape="lshape">L-Shaped</button>
+      </div>
+    </div>
+
+    <div id="flexStraightFields">
+      <h2>Door required?</h2>
+      <div class="field">
+        <div class="segmented" id="flexDoorRequiredToggle">
+          <button data-required="yes" class="active">Yes</button>
+          <button data-required="no">No</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="flexDoorTypePref">Door type preference</label>
+        <select id="flexDoorTypePref">
+          <option value="auto">Auto (sliding → bifold → swing fallback)</option>
+          <option value="sliding">Sliding (required)</option>
+          <option value="wooden">Wooden hinged/bifold (required)</option>
+          <option value="aluminum">Aluminum bifold (required)</option>
+          <option value="swing">Single swing (required)</option>
+        </select>
+        <div class="hint">Auto resolves sliding → bifold → single swing and assumes wooden material until confirmed. Forcing a type skips the fallback — if it genuinely can't fit the opening, you'll get an infeasible warning instead of a silent substitution.</div>
+      </div>
+
+      <h2>Overall dimensions</h2>
+      <div class="field">
+        <label for="flexLengthInput">Wall / run length (mm)</label>
+        <input type="number" id="flexLengthInput" value="3500" min="600" max="8000" step="10">
+        <div class="hint">Target only — actual built length is a module-fill output (Section 3.2).</div>
+      </div>
+      <div class="field">
+        <label for="flexCeilingInput">Ceiling height (mm)</label>
+        <input type="number" id="flexCeilingInput" value="2600" min="1800" max="3400" step="10">
+      </div>
+      <div class="field">
+        <label>Depth</label>
+        <input type="number" value="600" disabled>
+        <div class="hint">Fixed 600mm shell (450mm bracket + 150mm clearance).</div>
+      </div>
+
+      <h2>Left side condition</h2>
+      <div class="side-block">
+        <select id="flexLeftType">
+          <option value="none">No wall (open) — 60mm partition</option>
+          <option value="wall">Wall — 50mm pillar, no beam</option>
+          <option value="beam">Wall — with beam</option>
+        </select>
+        <div class="beam-fields" id="flexLeftBeamFields">
+          <div><label class="hint">Beam width (mm)</label><input type="number" id="flexLeftBeamWidth" value="130" min="20" max="600"></div>
+        </div>
+      </div>
+      <h2>Right side condition</h2>
+      <div class="side-block">
+        <select id="flexRightType">
+          <option value="none">No wall (open) — 60mm partition</option>
+          <option value="wall">Wall — 50mm pillar, no beam</option>
+          <option value="beam">Wall — with beam</option>
+        </select>
+        <div class="beam-fields" id="flexRightBeamFields">
+          <div><label class="hint">Beam width (mm)</label><input type="number" id="flexRightBeamWidth" value="130" min="20" max="600"></div>
+        </div>
+      </div>
+      <div class="hint" style="margin-bottom:14px;">Wall pillar and beam pillar only affect the door opening, never internal module-fill width — internal system mounts on the wall itself (Section 3.1). Beam widens the pillar by (beam width + 30mm) for door-opening purposes only.</div>
+
+      <h2>Proposal</h2>
+      <div class="field">
+        <div class="segmented" id="flexProposalToggle">
+          <button data-prop="A" class="active">A — Under</button>
+          <button data-prop="B">B — Over</button>
+        </div>
+        <div class="hint">A = closest fit ≤ target (may leave bare wall). B = closest fit &gt; target (built longer).</div>
+      </div>
+
+      <div class="field">
+        <div class="check" id="flexChkDoorHeightUpgrade"><span class="lbl">Upgrade door height beyond 2400mm (+cost)</span><span class="toggle"></span></div>
+      </div>
+      <div class="field">
+        <div class="check" id="flexChkInternalHeightUpgrade"><span class="lbl">Upgrade internal height to 2400mm (+cost)</span><span class="toggle"></span></div>
+        <div class="hint">Adds one extra shelf @2400mm to every section (Methodology Section 4.1).</div>
+      </div>
+    </div>
+
+    <div id="flexLshapeFields" style="display:none;">
+      <h2>Door required?</h2>
+      <div class="field">
+        <div class="segmented" id="flexLsDoorRequiredToggle">
+          <button data-required="yes" class="active">Yes</button>
+          <button data-required="no">No</button>
+        </div>
+        <div class="hint">Applies to both legs.</div>
+      </div>
+      <div class="field">
+        <label for="flexLsDoorTypePref">Door type preference (shared, both legs)</label>
+        <select id="flexLsDoorTypePref">
+          <option value="auto">Auto (sliding → bifold → swing fallback)</option>
+          <option value="sliding">Sliding (required)</option>
+          <option value="wooden">Wooden hinged/bifold (required)</option>
+          <option value="aluminum">Aluminum bifold (required)</option>
+          <option value="swing">Single swing (required)</option>
+        </select>
+      </div>
+      <h2>Ceiling (shared)</h2>
+      <div class="field">
+        <label for="flexLsCeilingInput">Ceiling height (mm)</label>
+        <input type="number" id="flexLsCeilingInput" value="2600" min="1800" max="3400" step="10">
+      </div>
+
+      <h2>Leg A</h2>
+      <div class="field">
+        <label for="flexLegALength">Leg A length (mm)</label>
+        <input type="number" id="flexLegALength" value="2000" min="600" max="5000" step="10">
+      </div>
+      <div class="side-block">
+        <label class="hint">Outer end (away from corner)</label>
+        <select id="flexLegAType">
+          <option value="none">No wall (open) — 60mm partition</option>
+          <option value="wall">Wall — 50mm pillar, no beam</option>
+          <option value="beam">Wall — with beam</option>
+        </select>
+        <div class="beam-fields" id="flexLegABeamFields">
+          <div><label class="hint">Beam width (mm)</label><input type="number" id="flexLegABeamWidth" value="130" min="20" max="600"></div>
+        </div>
+      </div>
+
+      <h2>Leg B</h2>
+      <div class="field">
+        <label for="flexLegBLength">Leg B length (mm)</label>
+        <input type="number" id="flexLegBLength" value="1250" min="600" max="5000" step="10">
+      </div>
+      <div class="side-block">
+        <label class="hint">Outer end (away from corner)</label>
+        <select id="flexLegBType">
+          <option value="none">No wall (open) — 60mm partition</option>
+          <option value="wall">Wall — 50mm pillar, no beam</option>
+          <option value="beam">Wall — with beam</option>
+        </select>
+        <div class="beam-fields" id="flexLegBBeamFields">
+          <div><label class="hint">Beam width (mm)</label><input type="number" id="flexLegBBeamWidth" value="130" min="20" max="600"></div>
+        </div>
+      </div>
+      <div class="hint" style="margin-bottom:14px;">Both legs assumed backed by a solid wall (HausFlex hard gate, Section 1/9.1). Corner ownership (which leg loses 600mm at the corner) is chosen automatically to minimize combined deviation (Section 9.3).</div>
+
+      <div class="field">
+        <div class="check" id="flexLsChkDoorHeightUpgrade"><span class="lbl">Upgrade door height beyond 2400mm (+cost)</span><span class="toggle"></span></div>
+      </div>
+      <div class="field">
+        <div class="check" id="flexLsChkInternalHeightUpgrade"><span class="lbl">Upgrade internal height to 2400mm (+cost)</span><span class="toggle"></span></div>
+        <div class="hint">Adds one extra shelf @2400mm to every section on both legs.</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="canvas-area">
+    <div id="flexStraightOutput">
+      <div class="tabs">
+        <button class="tab-btn flex-tab-btn active" data-view="ext">External Elevation</button>
+        <button class="tab-btn flex-tab-btn" data-view="int">Internal Elevation</button>
+        <button class="tab-btn flex-tab-btn" data-view="top">Top View</button>
+      </div>
+      <div class="view-panel">
+        <canvas id="flexElevCanvas"></canvas>
+        <canvas id="flexInternalElevCanvas" style="display:none;"></canvas>
+        <canvas id="flexTopViewCanvas" style="display:none;"></canvas>
+      </div>
+      <div class="spec-sheet" id="flexSpecSheet"></div>
+    </div>
+
+    <div id="flexLshapeOutput" style="display:none;">
+      <div class="tabs">
+        <button class="tab-btn flex-ls-tab-btn active" data-lsview="ext">External Elevation</button>
+        <button class="tab-btn flex-ls-tab-btn" data-lsview="int">Internal Elevation</button>
+        <button class="tab-btn flex-ls-tab-btn" data-lsview="top">Top View</button>
+      </div>
+      <div class="view-panel">
+        <canvas id="flexLsExtCanvas" style="display:block; width:100%; height:480px;"></canvas>
+        <canvas id="flexLsIntCanvas" style="display:none; width:100%; height:480px;"></canvas>
+        <canvas id="flexLsTopCanvas" style="display:none; width:100%; height:420px;"></canvas>
+      </div>
+      <div class="spec-sheet" id="flexLsSpecSheet"></div>
+    </div>
+  </main>
+</div>
+</div>
+<!-- /page-config -->
+
+<div class="app" id="page-addons" style="display:none;">
+<div class="app" id="poleAddons" style="display:flex;">
+  <aside class="controls">
+    <h2>Finish (from base config)</h2>
+    <div class="field">
+      <label for="mirrorQty">Full mirror door panels (qty, +$150 each)</label>
+      <input type="number" id="mirrorQty" value="0" min="0" max="20" step="1">
+    </div>
+    <div class="field" id="laminateField">
+      <label for="laminateQty">Laminate pieces (qty, +$80 each)</label>
+      <input type="number" id="laminateQty" value="0" min="0" max="40" step="1">
+    </div>
+    <div class="hint" id="laminateHint"></div>
+    <div class="field">
+      <label for="poleFinish">Pole finish (Silver standard; Champagne/Black +$30/ft run)</label>
+      <select id="poleFinish">
+        <option value="silver">Silver (standard, no extra cost)</option>
+        <option value="champagne">Champagne (+$30/ft run)</option>
+        <option value="black">Black (+$30/ft run)</option>
+      </select>
+    </div>
+
+    <h2>Drawer add-ons</h2>
+    <div class="field">
+      <label for="addonExtraDrawers">Additional drawers beyond base count (qty, +$80 each)</label>
+      <input type="number" id="addonExtraDrawers" value="0" min="0" max="20" step="1">
+    </div>
+    <div class="field">
+      <label for="addonSecretDrawer">Secret drawer top-up (qty, +$100 each)</label>
+      <input type="number" id="addonSecretDrawer" value="0" min="0" max="10" step="1">
+    </div>
+    <div class="field">
+      <label for="addonDrawerHead">Drawer head → mirror + aluminium frame (qty, +$60/drawer)</label>
+      <input type="number" id="addonDrawerHead" value="0" min="0" max="20" step="1">
+    </div>
+
+    <h2>Site work</h2>
+    <div class="check" id="chkDismantle">
+      <span class="lbl">Dismantle &amp; disposal ($40/ft run, min $200)</span>
+      <span class="toggle"></span>
+    </div>
+    <div class="field">
+      <label for="addonRelocatePoint">Relocate switch/power point (qty, +$80/point)</label>
+      <input type="number" id="addonRelocatePoint" value="0" min="0" max="20" step="1">
+    </div>
+    <div class="field">
+      <label for="addonNewSwitch">New light switch (qty, +$100/point)</label>
+      <input type="number" id="addonNewSwitch" value="0" min="0" max="20" step="1">
+    </div>
+
+    <h2>Lighting</h2>
+    <div class="check" id="chkLed">
+      <span class="lbl">LED lighting (min $180, incl. first 1.5m)</span>
+      <span class="toggle"></span>
+    </div>
+    <div class="field" id="ledLengthField" style="display:none;">
+      <label for="addonLedLength">Total LED run length (m)</label>
+      <input type="number" id="addonLedLength" value="1.5" min="0" max="20" step="0.1">
+      <div class="hint">Beyond 1.5m charged at $120/m excess</div>
+    </div>
+    <div class="field">
+      <label for="addonSensor">Wired sensor — touch/door inductive (qty, +$80/ea)</label>
+      <input type="number" id="addonSensor" value="0" min="0" max="20" step="1">
+    </div>
+
+    <h2>Accessories</h2>
+    <div class="field">
+      <label for="addonWireBasket">Pull-out wire basket 600mm (qty, +$180/unit)</label>
+      <input type="number" id="addonWireBasket" value="0" min="0" max="20" step="1">
+    </div>
+    <div class="field">
+      <label for="addonTrouserHolder">Trouser holder (qty, +$80/ea)</label>
+      <input type="number" id="addonTrouserHolder" value="0" min="0" max="20" step="1">
+    </div>
+    <div class="field">
+      <label for="addonDoubleTrouser">Double trouser hanger 630 (qty, +$200/ea)</label>
+      <input type="number" id="addonDoubleTrouser" value="0" min="0" max="20" step="1">
+    </div>
+    <div class="field">
+      <label for="addonPulloutTrouser">Pull-out trouser hanger 610/800mm (qty, +$120/ea)</label>
+      <input type="number" id="addonPulloutTrouser" value="0" min="0" max="20" step="1">
+    </div>
+    <div class="field">
+      <label for="addonFullMirror">Full-length pull-out mirror (qty, +$200/ea)</label>
+      <input type="number" id="addonFullMirror" value="0" min="0" max="10" step="1">
+    </div>
+    <div class="field">
+      <label for="addonBoxMirror">Box-up mirror (qty, +$150/ea)</label>
+      <input type="number" id="addonBoxMirror" value="0" min="0" max="10" step="1">
+    </div>
+    <div class="field">
+      <label for="addonFlipMirror">Flip mirror (qty, +$160/ea)</label>
+      <input type="number" id="addonFlipMirror" value="0" min="0" max="10" step="1">
+    </div>
+  </aside>
+
+  <main class="canvas-area">
+    <div class="spec-sheet" id="baseConfigSummary"></div>
+    <div class="spec-sheet price-sheet" id="addonPriceSheet"></div>
+  </main>
+</div>
+
+<div class="app" id="flexAddons" style="display:none;">
+  <aside class="controls">
+    <h2>Finish</h2>
+    <div class="field">
+      <label for="flexMirrorQty">Full mirror door panels (qty, +$150 each)</label>
+      <input type="number" id="flexMirrorQty" value="0" min="0" max="20" step="1">
+    </div>
+    <div class="field" id="flexLaminateField">
+      <label for="flexLaminateQty">Laminate pieces (qty, +$80 each)</label>
+      <input type="number" id="flexLaminateQty" value="0" min="0" max="40" step="1">
+    </div>
+    <div class="hint" id="flexLaminateHint" style="margin-top:-8px; margin-bottom:14px;"></div>
+
+    <h2>Site work</h2>
+    <div class="check" id="flexChkDismantle">
+      <span class="lbl">Dismantle &amp; disposal ($40/ft run, min $200)</span>
+      <span class="toggle"></span>
+    </div>
+    <div class="field">
+      <label for="flexAddonRelocatePoint">Relocate switch/power point (qty, +$80/point)</label>
+      <input type="number" id="flexAddonRelocatePoint" value="0" min="0" max="20" step="1">
+    </div>
+    <div class="field">
+      <label for="flexAddonNewSwitch">New light switch (qty, +$100/point)</label>
+      <input type="number" id="flexAddonNewSwitch" value="0" min="0" max="20" step="1">
+    </div>
+
+    <h2>Lighting</h2>
+    <div class="check" id="flexChkLed">
+      <span class="lbl">LED lighting (min $180, incl. first 1.5m)</span>
+      <span class="toggle"></span>
+    </div>
+    <div class="field" id="flexLedLengthField" style="display:none;">
+      <label for="flexAddonLedLength">Total LED run length (m)</label>
+      <input type="number" id="flexAddonLedLength" value="1.5" min="0" max="20" step="0.1">
+      <div class="hint">Beyond 1.5m charged at $120/m excess</div>
+    </div>
+    <div class="field">
+      <label for="flexAddonSensor">Wired sensor — touch/door inductive (qty, +$80/ea)</label>
+      <input type="number" id="flexAddonSensor" value="0" min="0" max="20" step="1">
+    </div>
+
+    <h2>Accessories</h2>
+    <div class="field">
+      <label for="flexWireBasketQty">Wire baskets (qty)</label>
+      <input type="number" id="flexWireBasketQty" value="0" min="0" max="40" step="1">
+      <div class="hint">Defaults to HausPole's length-tiered table, included in base price. Anything beyond the table count is a paid add-on (+$120/unit).</div>
+    </div>
+    <div class="field">
+      <label for="flexTrouserHangerQty">Trouser hangers (qty, +$120/unit)</label>
+      <input type="number" id="flexTrouserHangerQty" value="0" min="0" max="10" step="1">
+    </div>
+    <div class="field">
+      <label for="flexPulloutMirrorQty">Full-length pull-out mirror (qty, +$200/ea)</label>
+      <input type="number" id="flexPulloutMirrorQty" value="0" min="0" max="10" step="1">
+      <div class="hint">Mounts on an open-end partition side only (never the pillar side) — requires 75mm clearance (Section 6.1).</div>
+    </div>
+  </aside>
+  <main class="canvas-area">
+    <div class="spec-sheet" id="flexBaseConfigSummary"></div>
+    <div class="spec-sheet price-sheet" id="flexAddonPriceSheet"></div>
+  </main>
+</div>
+</div>
+<!-- /page-addons -->
+
+<div class="app" id="page-quote" style="display:none;">
+  <main class="canvas-area" style="flex:1; max-width:760px; margin:0 auto; padding-top:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h2 style="margin:0; border:none; padding:0;">Copy-ready quote</h2>
+      <button id="copyQuoteBtn" style="padding:9px 18px; background:var(--steel); color:#0F1620; border:none; border-radius:4px; font-weight:600; font-size:0.82rem; cursor:pointer; letter-spacing:0.3px;">Copy Quote</button>
+    </div>
+    <div class="hint" style="margin-bottom:14px;">Formatted for WhatsApp (*bold* / _italic_). Preview below — click Copy to send as-is.</div>
+    <pre id="quotePreview" style="background:var(--paper); color:#1B1F26; padding:20px 22px; border-radius:4px; white-space:pre-wrap; font-family:-apple-system,BlinkMacSystemFont,sans-serif; font-size:0.88rem; line-height:1.6; margin:0;"></pre>
+  </main>
+</div>

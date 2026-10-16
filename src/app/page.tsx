@@ -1,12 +1,12 @@
 "use client";
 
 import React from "react";
-import { Configurator } from "@/components/configurator/Configurator";
+import { EngineeringConfigurator } from "@/components/configurator/EngineeringConfigurator";
 
 export default function Home() {
   return (
-    <main className="w-full h-screen bg-[#F5F3EF] overflow-hidden">
-      <Configurator />
+    <main className="w-full min-h-screen bg-[#1B1F26]">
+      <EngineeringConfigurator />
     </main>
   );
 }

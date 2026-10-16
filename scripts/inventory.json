@@ -1,0 +1,524 @@
+{
+  "inputs": [
+    {
+      "tag": "input",
+      "id": "lengthInput",
+      "type": "number",
+      "min": "600",
+      "max": "6000",
+      "value": "2700"
+    },
+    {
+      "tag": "input",
+      "id": "ceilingInput",
+      "type": "number",
+      "min": "1800",
+      "max": "3400",
+      "value": "2600"
+    },
+    {
+      "tag": "input",
+      "id": "depthInput",
+      "type": "number",
+      "min": "350",
+      "max": "750",
+      "value": "600"
+    },
+    {
+      "tag": "select",
+      "id": "doorTypePref",
+      "type": "select"
+    },
+    {
+      "tag": "select",
+      "id": "leftType",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "leftBeamWidth",
+      "type": "number",
+      "min": "20",
+      "max": "600",
+      "value": "130"
+    },
+    {
+      "tag": "select",
+      "id": "rightType",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "rightBeamWidth",
+      "type": "number",
+      "min": "20",
+      "max": "600",
+      "value": "130"
+    },
+    {
+      "tag": "select",
+      "id": "lsDoorTypePref",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "lsCeilingInput",
+      "type": "number",
+      "min": "1800",
+      "max": "3400",
+      "value": "2600"
+    },
+    {
+      "tag": "input",
+      "id": "lsDepthInput",
+      "type": "number",
+      "min": "350",
+      "max": "750",
+      "value": "600"
+    },
+    {
+      "tag": "input",
+      "id": "legALength",
+      "type": "number",
+      "min": "600",
+      "max": "4000",
+      "value": "1900"
+    },
+    {
+      "tag": "select",
+      "id": "legAWall",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "legABeamWidth",
+      "type": "number",
+      "min": "20",
+      "max": "600",
+      "value": "130"
+    },
+    {
+      "tag": "input",
+      "id": "legBLength",
+      "type": "number",
+      "min": "600",
+      "max": "4000",
+      "value": "1250"
+    },
+    {
+      "tag": "select",
+      "id": "legBWall",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "legBBeamWidth",
+      "type": "number",
+      "min": "20",
+      "max": "600",
+      "value": "130"
+    },
+    {
+      "tag": "select",
+      "id": "flexDoorTypePref",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "flexLengthInput",
+      "type": "number",
+      "min": "600",
+      "max": "8000",
+      "value": "3500"
+    },
+    {
+      "tag": "input",
+      "id": "flexCeilingInput",
+      "type": "number",
+      "min": "1800",
+      "max": "3400",
+      "value": "2600"
+    },
+    {
+      "tag": "select",
+      "id": "flexLeftType",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "flexLeftBeamWidth",
+      "type": "number",
+      "min": "20",
+      "max": "600",
+      "value": "130"
+    },
+    {
+      "tag": "select",
+      "id": "flexRightType",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "flexRightBeamWidth",
+      "type": "number",
+      "min": "20",
+      "max": "600",
+      "value": "130"
+    },
+    {
+      "tag": "select",
+      "id": "flexLsDoorTypePref",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "flexLsCeilingInput",
+      "type": "number",
+      "min": "1800",
+      "max": "3400",
+      "value": "2600"
+    },
+    {
+      "tag": "input",
+      "id": "flexLegALength",
+      "type": "number",
+      "min": "600",
+      "max": "5000",
+      "value": "2000"
+    },
+    {
+      "tag": "select",
+      "id": "flexLegAType",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "flexLegABeamWidth",
+      "type": "number",
+      "min": "20",
+      "max": "600",
+      "value": "130"
+    },
+    {
+      "tag": "input",
+      "id": "flexLegBLength",
+      "type": "number",
+      "min": "600",
+      "max": "5000",
+      "value": "1250"
+    },
+    {
+      "tag": "select",
+      "id": "flexLegBType",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "flexLegBBeamWidth",
+      "type": "number",
+      "min": "20",
+      "max": "600",
+      "value": "130"
+    },
+    {
+      "tag": "input",
+      "id": "mirrorQty",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "laminateQty",
+      "type": "number",
+      "min": "0",
+      "max": "40",
+      "value": "0"
+    },
+    {
+      "tag": "select",
+      "id": "poleFinish",
+      "type": "select"
+    },
+    {
+      "tag": "input",
+      "id": "addonExtraDrawers",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonSecretDrawer",
+      "type": "number",
+      "min": "0",
+      "max": "10",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonDrawerHead",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonRelocatePoint",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonNewSwitch",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonLedLength",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "1.5"
+    },
+    {
+      "tag": "input",
+      "id": "addonSensor",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonWireBasket",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonTrouserHolder",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonDoubleTrouser",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonPulloutTrouser",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonFullMirror",
+      "type": "number",
+      "min": "0",
+      "max": "10",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonBoxMirror",
+      "type": "number",
+      "min": "0",
+      "max": "10",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "addonFlipMirror",
+      "type": "number",
+      "min": "0",
+      "max": "10",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "flexMirrorQty",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "flexLaminateQty",
+      "type": "number",
+      "min": "0",
+      "max": "40",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "flexAddonRelocatePoint",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "flexAddonNewSwitch",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "flexAddonLedLength",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "1.5"
+    },
+    {
+      "tag": "input",
+      "id": "flexAddonSensor",
+      "type": "number",
+      "min": "0",
+      "max": "20",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "flexWireBasketQty",
+      "type": "number",
+      "min": "0",
+      "max": "40",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "flexTrouserHangerQty",
+      "type": "number",
+      "min": "0",
+      "max": "10",
+      "value": "0"
+    },
+    {
+      "tag": "input",
+      "id": "flexPulloutMirrorQty",
+      "type": "number",
+      "min": "0",
+      "max": "10",
+      "value": "0"
+    }
+  ],
+  "toggles": [
+    "chkUpgrade",
+    "chkInternalUpgrade",
+    "lsChkDoorUpgrade",
+    "lsChkInternalUpgrade",
+    "flexChkDoorHeightUpgrade",
+    "flexChkInternalHeightUpgrade",
+    "chkDismantle",
+    "chkLed",
+    "flexChkDismantle",
+    "flexChkLed"
+  ],
+  "segmentedToggles": [
+    {
+      "id": "productToggle",
+      "buttons": [
+        "HausPole",
+        "HausFlex"
+      ]
+    },
+    {
+      "id": "shapeToggle",
+      "buttons": [
+        "Straight",
+        "L-Shaped"
+      ]
+    },
+    {
+      "id": "doorRequiredToggle",
+      "buttons": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "id": "lsDoorRequiredToggle",
+      "buttons": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "id": "flexShapeToggle",
+      "buttons": [
+        "Straight",
+        "L-Shaped"
+      ]
+    },
+    {
+      "id": "flexDoorRequiredToggle",
+      "buttons": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "id": "flexProposalToggle",
+      "buttons": [
+        "A — Under",
+        "B — Over"
+      ]
+    },
+    {
+      "id": "flexLsDoorRequiredToggle",
+      "buttons": [
+        "Yes",
+        "No"
+      ]
+    }
+  ],
+  "canvases": [
+    "elevCanvas",
+    "internalElevCanvas",
+    "topViewCanvas",
+    "lshapeExtCanvas",
+    "lshapeIntCanvas",
+    "lshapeTopViewCanvas",
+    "flexElevCanvas",
+    "flexInternalElevCanvas",
+    "flexTopViewCanvas",
+    "flexLsExtCanvas",
+    "flexLsIntCanvas",
+    "flexLsTopCanvas"
+  ],
+  "specSheets": [
+    "specSheet",
+    "internalSheet",
+    "lshapeSpecSheet",
+    "flexSpecSheet",
+    "flexLsSpecSheet",
+    "baseConfigSummary",
+    "addonPriceSheet",
+    "flexBaseConfigSummary",
+    "flexAddonPriceSheet"
+  ]
+}
